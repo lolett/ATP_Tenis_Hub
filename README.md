@@ -190,5 +190,5 @@ Planned future work includes:
 
 ## Author
 
-Manuel Aparicio
-DAW Intermodular Project
+- Manuel Aparicio
+- DAW Intermodular Project
