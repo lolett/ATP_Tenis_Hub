@@ -160,13 +160,13 @@ The backend currently includes:
 * required field validation
 * duplicate activity check
 * proper HTTP status codes:
-- 200 OK
-- 201 Created
-- 204 No Content
-- 400 Bad Request
-- 404 Not Found
-- 409 Conflict
-- 500 Internal Server Error
+  - 200 OK
+  - 201 Created
+  - 204 No Content
+  - 400 Bad Request
+  - 404 Not Found
+  - 409 Conflict
+  - 500 Internal Server Error
 
 ## Testing
 The API has been tested with Postman using requests for:
