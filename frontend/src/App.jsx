@@ -1,0 +1,173 @@
+import { useEffect, useState } from "react";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+export default function App() {
+  const [activities, setActivities] = useState([]);
+  const [status, setStatus] = useState("");
+
+  // form state
+  const [title, setTitle] = useState("");
+  const [date, setDate] = useState("2026-03-08");
+  const [surface, setSurface] = useState("clay");
+  const [notes, setNotes] = useState("");
+
+  // edit register state
+  const [editingId, setEditingId] = useState(null);
+
+  async function loadActivities() {
+    try {
+      const res = await fetch(`${API_URL}/api/activities`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setActivities(data);
+    } catch (err) {
+      console.error(err);
+      setStatus("Error loading activities");
+    }
+  }
+
+  useEffect(() => {
+    setStatus("Loading...");
+    loadActivities().finally(() => setStatus(""));
+  }, []);
+
+  // Create activity funcion
+  async function createActivity(e) {
+    e.preventDefault();
+
+    if (!title.trim()) {
+      setStatus("Title is required");
+      return;
+    }
+
+    try {
+      setStatus("Saving...");
+
+      const isEditing = editingId !== null;
+      const url = isEditing
+        ? `${API_URL}/api/activities/${editingId}`
+        : `${API_URL}/api/activities`;
+
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "match",
+          date,
+          title: title.trim(),
+          surface,
+          notes,
+        }),
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `HTTP ${res.status}`);
+      }
+
+      await loadActivities();
+
+      setEditingId(null);
+
+      setTitle("");
+      setNotes("");
+      setStatus("");
+    } catch (err) {
+      console.error(err);
+      setStatus(`Error: ${err.message}`);
+    }
+  }
+
+  function startEdit(activity) {
+    setEditingId(activity.id);
+    setTitle(activity.title || "");
+    setDate(activity.date || "2026-03-08");
+    setSurface(activity.surface || "");
+    setNotes(activity.notes || "");
+    setStatus("");
+  }
+
+  async function deleteActivity(id) {
+    try {
+      setStatus("Deleting...");
+
+      const res = await fetch(`${API_URL}/api/activities/${id}`, {
+        method: "DELETE",
+      });
+
+      if (res.status === 404) {
+        setStatus("Error: activity not found");
+        await loadActivities();
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      await loadActivities();
+      setStatus("");
+    } catch (err) {
+      console.error(err);
+      setStatus(`Error: ${err.message}`);
+    }
+  }
+
+  return (
+    <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
+      <h1>ATP Tenis Hub</h1>
+
+      <h2>Create match</h2>
+      <form onSubmit={createActivity} style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title (e.g., vs Juan)"
+          />
+
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+
+          <input
+            value={surface}
+            onChange={(e) => setSurface(e.target.value)}
+            placeholder="surface (clay/hard/grass)"
+          />
+
+          <input
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="notes"
+          />
+
+          <button type="submit">
+            {editingId ? "Save changes" : "Add match"}
+          </button>
+        </div>
+      </form>
+
+      {status && <p>{status}</p>}
+
+      <h2>Activities</h2>
+
+      {!status && activities.length === 0 && <p>No activities yet.</p>}
+
+      <ul>
+        {activities.map((a) => (
+          <li key={a.id} style={{ marginBottom: 8 }}>
+            <strong>{a.title}</strong> — {a.type} — {a.date}{" "}
+            <button onClick={() => startEdit(a)}>Edit</button>
+            <button onClick={() => deleteActivity(a.id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
