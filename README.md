@@ -57,7 +57,7 @@ ATP_Tenis_Hub/
 └── .gitignore
 ```
 ## Features implemented
-###Activities module
+### Activities module
 
 The application currently supports a complete CRUD workflow for activities stored in SQLite.
 
