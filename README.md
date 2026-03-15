@@ -6,6 +6,10 @@ The project is focused on two main ideas:
 - managing personal tennis activities (matches/training) through a full CRUD system
 - building a technical foundation that can later be extended with real ATP data such as rankings, tournaments and results
 
+## Repository
+```bash
+https://github.com/lolett/atp-tenis-hub
+```
 ## Current MVP status
 
 The current version includes:
