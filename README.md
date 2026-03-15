@@ -7,7 +7,7 @@ The project is focused on two main ideas:
 - building a technical foundation that can later be extended with real ATP data such as rankings, tournaments and results
 
 ## Repository
-```bash
+```text
 https://github.com/lolett/atp-tenis-hub
 ```
 ## Current MVP status
@@ -78,47 +78,47 @@ Each activity includes:
 
 ## Local setup
 ### 1. Clone the repository
-```bash
+```text
 git clone https://github.com/lolett/ATP_Tenis_Hub.git
 cd ATP_Tenis_Hub
 ```
 ### 2. Run the backend
-```bash
+```text
 cd backend
 npm install
 npm run dev
 ```
 
 Backend available at:
-```bash
+```text
 http://localhost:3000
 ```
 Health check:
-```bash
+```text
 http://localhost:3000/health
 ```
 ### 3. Run the frontend
 
 Open a new terminal:
 
-```bash
+```text
 cd frontend
 npm install
 npm run dev
 ```
 
 Frontend will usually run at:
-```bash
+```text
 http://localhost:5173
 ```
 or
-```bash
+```text
 http://localhost:5174
 ```
 ## API endpoints
 
 ### Base URL:
-```bash
+```text
 http://localhost:3000
 ```
 ### Activities
@@ -148,12 +148,12 @@ Example request body
 
 The backend uses SQLite with a local database file:
 
-```bash
+```text
 backend/data.db
 ```
 The schema is initialized from:
 
-```bash
+```text
 backend/db/schema.sql
 ```
 
