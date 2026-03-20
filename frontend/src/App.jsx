@@ -5,6 +5,8 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 export default function App() {
   const [activities, setActivities] = useState([]);
   const [status, setStatus] = useState("");
+  const [ranking, setRanking] = useState([]);
+  const [rankingStatus, setRankingStatus] = useState("");
 
   // form state
   const [title, setTitle] = useState("");
@@ -14,6 +16,20 @@ export default function App() {
 
   // edit register state
   const [editingId, setEditingId] = useState(null);
+
+  async function loadRanking() {
+    try {
+      setRankingStatus("Loading ATP ranking...");
+      const res = await fetch(`${API_URL}/api/atp/ranking`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setRanking(data);
+      setRankingStatus("");
+    } catch (err) {
+      console.error(err);
+      setRankingStatus("Error loading ATP ranking");
+    }
+  }
 
   async function loadActivities() {
     try {
@@ -30,6 +46,7 @@ export default function App() {
   useEffect(() => {
     setStatus("Loading...");
     loadActivities().finally(() => setStatus(""));
+    loadRanking();
   }, []);
 
   // Create activity funcion
@@ -162,12 +179,32 @@ export default function App() {
       <ul>
         {activities.map((a) => (
           <li key={a.id} style={{ marginBottom: 8 }}>
-            <strong>{a.title}</strong> — {a.type} — {a.date}{" "}
-            <button onClick={() => startEdit(a)}>Edit</button>
+            <strong>{a.title}</strong> — {a.type} — {a.date}
+            {a.surface ? ` — ${a.surface}` : ""}
+            {a.score ? ` — ${a.score}` : ""}
+            {a.notes ? ` — ${a.notes}` : ""}{" "}
+            <button onClick={() => startEdit(a)}>Edit</button>{" "}
             <button onClick={() => deleteActivity(a.id)}>Delete</button>
           </li>
         ))}
       </ul>
+
+      <h2>ATP Ranking</h2>
+
+      {rankingStatus && <p>{rankingStatus}</p>}
+
+      {ranking.length === 0 ? (
+        <p>No ranking loaded yet.</p>
+      ) : (
+        <ul>
+          {ranking.map((player) => (
+            <li key={player.rank}>
+              #{player.rank} {player.name} ({player.country}) - {player.points}{" "}
+              pts
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

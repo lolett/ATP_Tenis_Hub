@@ -175,6 +175,18 @@ app.delete("/api/activities/:id", (req, res) => {
   res.status(204).send();
 });
 
+app.get("/api/atp/ranking", (req, res) => {
+  const ranking = [
+    { rank: 1, name: "Carlos Alcaraz", country: "ESP", points: 13550 },
+    { rank: 2, name: "Jannik Sinner", country: "ITA", points: 11360 },
+    { rank: 3, name: "Alexander Zverev", country: "GER", points: 4815 },
+    { rank: 4, name: "Novak Djokovic", country: "SRB", points: 4720 },
+    { rank: 5, name: "Lorenzo Musseti", country: "ITA", points: 4275 },
+  ];
+
+  res.json(ranking);
+});
+
 // production log debug --> will be modified in production environment
 app.use((err, req, res, next) => {
   console.error(err);
