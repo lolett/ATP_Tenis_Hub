@@ -13,6 +13,7 @@ export default function App() {
   const [date, setDate] = useState("2026-03-08");
   const [surface, setSurface] = useState("clay");
   const [notes, setNotes] = useState("");
+  const [filterText, setFilterText] = useState("");
 
   // edit register state
   const [editingId, setEditingId] = useState(null);
@@ -133,6 +134,16 @@ export default function App() {
     }
   }
 
+  // filter activities by input field
+  const filteredActivities = activities.filter((a) =>
+    a.title.toLowerCase().includes(filterText.toLowerCase()),
+  );
+
+  // filter activities by date
+  const sortedActivities = [...filteredActivities].sort(
+    (a, b) => new Date(b.date) - new Date(a.date),
+  );
+
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
       <h1>ATP Tenis Hub</h1>
@@ -172,14 +183,44 @@ export default function App() {
 
       {status && <p>{status}</p>}
 
+      <input
+        value={filterText}
+        onChange={(e) => setFilterText(e.target.value)}
+        placeholder="Filter activities..."
+        style={{ marginBottom: 12 }}
+      />
+
       <h2>Activities</h2>
+
+      <p>
+        <strong>Total activities:</strong> {sortedActivities.length}
+      </p>
 
       {!status && activities.length === 0 && <p>No activities yet.</p>}
 
+      {!status && activities.length > 0 && sortedActivities.length === 0 && (
+        <p>No activities found.</p>
+      )}
       <ul>
-        {activities.map((a) => (
+        {sortedActivities.map((a) => (
           <li key={a.id} style={{ marginBottom: 8 }}>
-            <strong>{a.title}</strong> — {a.type} — {a.date}
+            <strong>{a.title}</strong>{" "}
+            <span
+              style={{
+                display: "inline-block",
+                padding: "2px 8px",
+                margin: "0 8px",
+                borderRadius: 12,
+                backgroundColor: a.type === "match" ? "#2d6cdf" : "#2f8f4e",
+                color: "white",
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+              }}
+            >
+              {a.type}
+            </span>
+            — {a.date}
             {a.surface ? ` — ${a.surface}` : ""}
             {a.score ? ` — ${a.score}` : ""}
             {a.notes ? ` — ${a.notes}` : ""}{" "}
