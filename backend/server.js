@@ -1,4 +1,5 @@
 // server.js - ATP Tenis Hub API (Express + SQLite)
+const dotenv = require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { initDb, db } = require("./db/database");
@@ -339,17 +340,8 @@ app.delete("/api/activities/:id", requireAuth, (req, res) => {
   res.status(204).send();
 });
 
-app.get("/api/atp/ranking", (req, res) => {
-  const ranking = [
-    { rank: 1, name: "Carlos Alcaraz", country: "ESP", points: 13550 },
-    { rank: 2, name: "Jannik Sinner", country: "ITA", points: 11360 },
-    { rank: 3, name: "Alexander Zverev", country: "GER", points: 4815 },
-    { rank: 4, name: "Novak Djokovic", country: "SRB", points: 4720 },
-    { rank: 5, name: "Lorenzo Musseti", country: "ITA", points: 4275 },
-  ];
-
-  res.json(ranking);
-});
+const atpRoutes = require("./routes/atp");
+app.use("/api/atp", atpRoutes);
 
 // production log debug --> will be modified in production environment
 app.use((err, req, res, next) => {
