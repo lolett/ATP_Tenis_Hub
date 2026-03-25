@@ -37,7 +37,7 @@ async function rapidGet(res, path) {
 // GET /api/atp/ranking
 // → /tennis/v2/atp/singlesranking
 router.get("/ranking", (req, res) => {
-  rapidGet(res, "/atp/singlesranking");
+  rapidGet(res, "/atp/ranking/singles/");
 });
 
 // GET /api/atp/players?pageSize=50&pageNo=1

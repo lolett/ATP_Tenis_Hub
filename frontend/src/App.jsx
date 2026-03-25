@@ -6,6 +6,7 @@ import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import RankingPage from "./pages/RankingPage";
 import PlayersPage from "./pages/PlayersPage";
+import PlayerDetailPage from "./pages/PlayerDetailPage";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -13,11 +14,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes */}
+        {/* Public */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected routes - require login */}
+        {/* Protected */}
         <Route
           path="/"
           element={
@@ -42,6 +43,15 @@ export default function App() {
             <ProtectedRoute>
               <Navbar />
               <PlayersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/players/:id"
+          element={
+            <ProtectedRoute>
+              <Navbar />
+              <PlayerDetailPage />
             </ProtectedRoute>
           }
         />
