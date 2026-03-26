@@ -5,71 +5,36 @@ import { API_URL } from "../api/client";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleLogin(e) {
     e.preventDefault();
     setError("");
-
     if (!email.trim() || !password) {
       setError("Email and password are required.");
       return;
     }
-
     try {
-      setStatus("Logging in...");
-
+      setLoading(true);
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password,
-        }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
-
       const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
-      }
-
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       localStorage.setItem("token", data.token);
       navigate("/");
     } catch (err) {
       setError(err.message);
     } finally {
-      setStatus("");
+      setLoading(false);
     }
   }
-
-  <div
-    style={{
-      minHeight: "100vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#f0f2f5",
-    }}
-  >
-    <div
-      style={{
-        background: "white",
-        padding: 40,
-        borderRadius: 12,
-        boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
-        width: "100%",
-        maxWidth: 380,
-      }}
-    >
-      {/* existing form content here */}
-    </div>
-  </div>;
 
   return (
     <div
@@ -78,74 +43,83 @@ export default function LoginPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#f0f2f5",
-        fontFamily: "system-ui, sans-serif",
-        padding: 20, // Added padding for mobile responsiveness
+        background: "var(--bg)",
+        padding: 20,
       }}
     >
       <div
-        style={{
-          background: "deepskyblue",
-          padding: 40,
-          borderRadius: 12,
-          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
-          width: "100%",
-          maxWidth: 380,
-        }}
+        className="card"
+        style={{ width: "100%", maxWidth: 380, padding: 40 }}
       >
-        {/* 1. Header Block */}
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>🎾</div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
-            ATP Tenis Hub
-          </h1>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🎾</div>
+          <h1 style={{ fontSize: 24, marginBottom: 4 }}>ATP Tenis Hub</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: 14 }}>
+            Sign in to your account
+          </p>
         </div>
-
-        <h2 style={{ textAlign: "center", marginBottom: 20 }}>Login</h2>
 
         <form
           onSubmit={handleLogin}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-            maxWidth: 320,
-          }}
+          style={{ display: "flex", flexDirection: "column", gap: 14 }}
         >
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setError("");
-            }}
-          />
-
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="form-group">
+            <label className="form-label">Email</label>
             <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
+              type="email"
+              placeholder="you@example.com"
+              value={email}
               onChange={(e) => {
-                setPassword(e.target.value);
+                setEmail(e.target.value);
                 setError("");
               }}
-              style={{ flex: 1 }}
             />
-            <button type="button" onClick={() => setShowPassword((p) => !p)}>
-              {showPassword ? "Hide" : "Show"}
-            </button>
           </div>
 
-          <button type="submit">Login</button>
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type={showPass ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError("");
+                }}
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass((p) => !p)}
+                style={{ whiteSpace: "nowrap" }}
+              >
+                {showPass ? "Hide" : "Show"}
+              </button>
+            </div>
+          </div>
+
+          {error && <p className="error-text">{error}</p>}
+
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loading}
+            style={{ marginTop: 4, padding: "11px" }}
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
         </form>
 
-        {error && <p style={{ color: "red", marginTop: 8 }}>{error}</p>}
-        {status && <p style={{ marginTop: 8 }}>{status}</p>}
-
-        <p style={{ marginTop: 12 }}>
-          No account yet? <Link to="/register">Register here</Link>
+        <p
+          style={{
+            textAlign: "center",
+            marginTop: 20,
+            fontSize: 14,
+            color: "var(--text-muted)",
+          }}
+        >
+          No account? <Link to="/register">Create one</Link>
         </p>
       </div>
     </div>

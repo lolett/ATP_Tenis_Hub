@@ -1,11 +1,9 @@
-// routes/atp.js
-// Single API source: ATP WTA ITF (tennis-api-atp-wta-itf.p.rapidapi.com)
-// Ranking limited to ~11 players on free tier - acceptable for this project
+// routes/atp.js - ATP WTA ITF proxy
 const express = require("express");
 const router = express.Router();
 
 const KEY = process.env.RAPIDAPI_KEY;
-const HOST = process.env.RAPIDAPI_HOST; // tennis-api-atp-wta-itf.p.rapidapi.com
+const HOST = process.env.RAPIDAPI_HOST;
 const BASE = `https://${HOST}/tennis/v2`;
 
 const headers = () => ({
@@ -31,29 +29,51 @@ async function rapidGet(res, url) {
   }
 }
 
-// GET /api/atp/ranking
-// Returns { data: [ { position, point, player: { id, name, countryAcr, country } } ] }
-// player.id is the correct ATP WTA ITF id - use directly for profile navigation
+// ─── RANKINGS ────────────────────────────────────────────────────────────────
+// Confirmed working endpoint: /{tour}/ranking/singles
 router.get("/ranking", (req, res) => {
-  rapidGet(res, `${BASE}/atp/ranking/singles`);
+  const tour = req.query.tour === "wta" ? "wta" : "atp";
+  rapidGet(res, `${BASE}/${tour}/ranking/singles`);
 });
 
-// GET /api/atp/players/:id
+// ─── PLAYERS ─────────────────────────────────────────────────────────────────
 router.get("/players/:id", (req, res) => {
+  const tour = req.query.tour === "wta" ? "wta" : "atp";
   rapidGet(
     res,
-    `${BASE}/atp/player/profile/${req.params.id}?include=form,ranking,country`,
+    `${BASE}/${tour}/player/profile/${req.params.id}?include=form,ranking,country`,
   );
 });
 
-// GET /api/atp/players/:id/surface
 router.get("/players/:id/surface", (req, res) => {
-  rapidGet(res, `${BASE}/atp/player/surface-summary/${req.params.id}`);
+  const tour = req.query.tour === "wta" ? "wta" : "atp";
+  rapidGet(res, `${BASE}/${tour}/player/surface-summary/${req.params.id}`);
 });
 
-// GET /api/atp/players/:id/titles
 router.get("/players/:id/titles", (req, res) => {
-  rapidGet(res, `${BASE}/atp/player/titles/${req.params.id}`);
+  const tour = req.query.tour === "wta" ? "wta" : "atp";
+  rapidGet(res, `${BASE}/${tour}/player/titles/${req.params.id}`);
+});
+
+// ─── TOURNAMENTS ──────────────────────────────────────────────────────────────
+// Confirmed JSON shape: { data: [ { id, name, courtId, date, rankId,
+//   court: { id, name }, round: { id, name }, coutry: { acronym, name } } ] }
+// NOTE: API has typo "coutry" (missing 'n') - handled in frontend
+
+router.get("/tournaments", (req, res) => {
+  const tour = req.query.tour === "wta" ? "wta" : "atp";
+  const year = req.query.year || new Date().getFullYear();
+  rapidGet(res, `${BASE}/${tour}/tournament/calendar/${year}`);
+});
+
+router.get("/tournaments/:id/results", (req, res) => {
+  const tour = req.query.tour === "wta" ? "wta" : "atp";
+  rapidGet(res, `${BASE}/${tour}/tournament/results/${req.params.id}`);
+});
+
+router.get("/tournaments/:id/info", (req, res) => {
+  const tour = req.query.tour === "wta" ? "wta" : "atp";
+  rapidGet(res, `${BASE}/${tour}/tournament/info/${req.params.id}`);
 });
 
 module.exports = router;

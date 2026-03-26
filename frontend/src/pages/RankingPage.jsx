@@ -1,87 +1,87 @@
-// pages/RankingPage.jsx
+// pages/RankingPage.jsx — ATP + WTA tabs
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../api/client";
 
 export default function RankingPage() {
-  const [ranking, setRanking] = useState([]);
+  const [atpRanking, setAtpRanking] = useState([]);
+  const [wtaRanking, setWtaRanking] = useState([]);
+  const [tab, setTab] = useState("atp"); // "atp" | "wta"
   const [status, setStatus] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadRanking();
+    loadBoth();
   }, []);
 
-  async function loadRanking() {
-    try {
-      setStatus("Loading ATP ranking...");
-      const res = await fetch(`${API_URL}/api/atp/ranking`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      // ATP WTA ITF: { data: [ { position, point, player: { id, name, countryAcr } } ] }
-      setRanking(json.data ?? []);
-      setStatus("");
-    } catch (err) {
-      console.error(err);
-      setStatus("Error loading ranking. Is the backend running?");
-    }
+  async function loadBoth() {
+    setStatus("Loading rankings...");
+    const [atp, wta] = await Promise.allSettled([
+      fetch(`${API_URL}/api/atp/ranking`).then((r) => r.json()),
+      fetch(`${API_URL}/api/atp/ranking?tour=wta`).then((r) => r.json()),
+    ]);
+    if (atp.status === "fulfilled") setAtpRanking(atp.value.data ?? []);
+    if (wta.status === "fulfilled") setWtaRanking(wta.value.data ?? []);
+    setStatus("");
   }
 
+  const ranking = tab === "atp" ? atpRanking : wtaRanking;
+
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px" }}>
-      <h2>ATP Singles Ranking</h2>
-      {status && <p>{status}</p>}
-      {!status && ranking.length === 0 && <p>No data available.</p>}
+    <div className="page">
+      <h2>Singles Rankings</h2>
+
+      <div className="tabs">
+        <button
+          className={`tab ${tab === "atp" ? "active" : ""}`}
+          onClick={() => setTab("atp")}
+        >
+          🎾 ATP Men
+        </button>
+        <button
+          className={`tab ${tab === "wta" ? "active" : ""}`}
+          onClick={() => setTab("wta")}
+        >
+          🎾 WTA Women
+        </button>
+      </div>
+
+      {status && <p style={{ color: "var(--text-muted)" }}>{status}</p>}
+      {!status && ranking.length === 0 && <p>No ranking data available.</p>}
 
       {ranking.length > 0 && (
-        <div
-          style={{
-            background: "white",
-            borderRadius: 12,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-            overflow: "hidden",
-          }}
-        >
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="table-wrapper">
+          <table>
             <thead>
-              <tr style={{ background: "#f9fafb" }}>
-                <th style={{ padding: "12px 16px", textAlign: "left" }}>#</th>
-                <th style={{ padding: "12px 16px", textAlign: "left" }}>
-                  Player
-                </th>
-                <th style={{ padding: "12px 16px", textAlign: "left" }}>
-                  Country
-                </th>
-                <th style={{ padding: "12px 16px", textAlign: "left" }}>
-                  Points
-                </th>
-                <th style={{ padding: "12px 16px", textAlign: "left" }}>
-                  Profile
-                </th>
+              <tr>
+                <th>#</th>
+                <th>Player</th>
+                <th className="hide-mobile">Country</th>
+                <th>Points</th>
+                <th>Profile</th>
               </tr>
             </thead>
             <tbody>
               {ranking.map((item, i) => (
-                <tr
-                  key={item.id}
-                  style={{
-                    borderTop: "1px solid #f3f4f6",
-                    background: i % 2 === 0 ? "white" : "#fafafa",
-                  }}
-                >
-                  <td style={{ padding: "12px 16px", fontWeight: 700 }}>
+                <tr key={item.id ?? i}>
+                  <td style={{ fontWeight: 800, color: "var(--primary)" }}>
                     {item.position}
                   </td>
-                  <td style={{ padding: "12px 16px" }}>{item.player.name}</td>
-                  <td style={{ padding: "12px 16px" }}>
+                  <td style={{ fontWeight: 600 }}>{item.player.name}</td>
+                  <td
+                    className="hide-mobile"
+                    style={{ color: "var(--text-muted)" }}
+                  >
                     {item.player.countryAcr}
                   </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    {Number(item.point).toLocaleString()}
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
+                  <td>{Number(item.point).toLocaleString()}</td>
+                  <td>
                     <button
-                      onClick={() => navigate(`/players/${item.player.id}`)}
+                      className="btn-primary"
+                      style={{ padding: "5px 12px", fontSize: 12 }}
+                      onClick={() =>
+                        navigate(`/players/${item.player.id}?tour=${tab}`)
+                      }
                     >
                       View
                     </button>

@@ -1,11 +1,8 @@
-// pages/PlayerDetailPage.jsx
-// Shows full ATP player profile fetched from backend proxy + Wikipedia photo
+// pages/PlayerDetailPage.jsx — supports ?tour=wta query param
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { API_URL } from "../api/client";
 
-// Fetch player photo from Wikipedia REST API (free, no key needed)
-// Returns image URL string or null
 async function fetchWikiPhoto(playerName) {
   try {
     const slug = playerName.trim().replace(/\s+/g, "_");
@@ -20,10 +17,10 @@ async function fetchWikiPhoto(playerName) {
   }
 }
 
-const FORM_COLORS = { w: "#2f8f4e", l: "#c0392b" };
-
 export default function PlayerDetailPage() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const tour = searchParams.get("tour") ?? "atp";
   const navigate = useNavigate();
 
   const [player, setPlayer] = useState(null);
@@ -33,9 +30,8 @@ export default function PlayerDetailPage() {
   const [status, setStatus] = useState("");
 
   useEffect(() => {
-    if (!id) return;
-    loadAll();
-  }, [id]);
+    if (id) loadAll();
+  }, [id, tour]);
 
   async function loadAll() {
     setStatus("Loading player...");
@@ -45,177 +41,171 @@ export default function PlayerDetailPage() {
     setTitles([]);
 
     try {
-      // 1. Player profile
-      const profileRes = await fetch(`${API_URL}/api/atp/players/${id}`);
-      if (!profileRes.ok) throw new Error(`Profile HTTP ${profileRes.status}`);
+      const profileRes = await fetch(
+        `${API_URL}/api/atp/players/${id}?tour=${tour}`,
+      );
+      if (!profileRes.ok) throw new Error(`HTTP ${profileRes.status}`);
       const profileJson = await profileRes.json();
       const p = profileJson.data ?? profileJson;
       setPlayer(p);
       setStatus("");
+      if (p.name) fetchWikiPhoto(p.name).then(setPhoto);
 
-      // 2. Wikipedia photo (non-blocking)
-      if (p.name) {
-        fetchWikiPhoto(p.name).then(setPhoto);
-      }
-
-      // 3. Surface summary
-      const surfaceRes = await fetch(
-        `${API_URL}/api/atp/players/${id}/surface`,
-      );
-      if (surfaceRes.ok) {
-        const surfaceJson = await surfaceRes.json();
-        const rows = surfaceJson.data ?? [];
-        // Use most recent year only
+      const [surfaceRes, titlesRes] = await Promise.allSettled([
+        fetch(`${API_URL}/api/atp/players/${id}/surface?tour=${tour}`).then(
+          (r) => r.json(),
+        ),
+        fetch(`${API_URL}/api/atp/players/${id}/titles?tour=${tour}`).then(
+          (r) => r.json(),
+        ),
+      ]);
+      if (surfaceRes.status === "fulfilled") {
+        const rows = surfaceRes.value.data ?? [];
         if (rows.length > 0) setSurface(rows[0].surfaces ?? []);
       }
-
-      // 4. Titles
-      const titlesRes = await fetch(`${API_URL}/api/atp/players/${id}/titles`);
-      if (titlesRes.ok) {
-        const titlesJson = await titlesRes.json();
-        setTitles(titlesJson.data ?? []);
+      if (titlesRes.status === "fulfilled") {
+        setTitles(titlesRes.value.data ?? []);
       }
     } catch (err) {
       console.error(err);
-      setStatus(`Error loading player: ${err.message}`);
+      setStatus(`Error: ${err.message}`);
     }
   }
 
-  if (status) {
+  if (status)
     return (
-      <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
-        <button
-          onClick={() => navigate(-1)}
-          style={{
-            marginBottom: 20,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            background: "none",
-            border: "1px solid #e5e7eb",
-            color: "#374151",
-          }}
-        >
+      <div className="page">
+        <button onClick={() => navigate(-1)} style={{ marginBottom: 16 }}>
           ← Back
         </button>
-        <p style={{ marginTop: 16 }}>{status}</p>
+        <p style={{ color: "var(--text-muted)", marginTop: 16 }}>{status}</p>
       </div>
     );
-  }
-
   if (!player) return null;
 
   const info = player.information ?? {};
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px" }}>
-      <div
-        style={{
-          background: "white",
-          borderRadius: 12,
-          padding: 32,
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        }}
-      >
-        <button onClick={() => navigate(-1)} style={{ marginBottom: 16 }}>
-          ← Back
-        </button>
+    <div className="page">
+      <button onClick={() => navigate(-1)} style={{ marginBottom: 20 }}>
+        ← Back
+      </button>
 
-        {/* Header */}
+      {/* Header card */}
+      <div className="card" style={{ padding: 28, marginBottom: 24 }}>
         <div
           style={{
-            background: "#f9fafb",
-            borderRadius: 8,
-            padding: 20,
-            marginBottom: 24,
             display: "flex",
             gap: 24,
             alignItems: "flex-start",
+            flexWrap: "wrap",
           }}
         >
-          {photo ? (
-            <img
-              src={photo}
-              alt={player.name}
-              style={{
-                width: 120,
-                height: 160,
-                objectFit: "cover",
-                borderRadius: 8,
-                flexShrink: 0,
-              }}
-            />
-          ) : (
+          {/* Photo */}
+          <div
+            style={{
+              width: 110,
+              height: 150,
+              borderRadius: 10,
+              overflow: "hidden",
+              background: "var(--surface-2)",
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid var(--border)",
+            }}
+          >
+            {photo ? (
+              <img
+                src={photo}
+                alt={player.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              <span style={{ fontSize: 44 }}>🎾</span>
+            )}
+          </div>
+
+          {/* Info */}
+          <div style={{ flex: 1, minWidth: 200 }}>
             <div
               style={{
-                width: 120,
-                height: 160,
-                borderRadius: 8,
-                background: "#eee",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                fontSize: 40,
-                flexShrink: 0,
+                gap: 10,
+                marginBottom: 4,
               }}
             >
-              🎾
+              <h1 style={{ marginBottom: 0 }}>{player.name}</h1>
+              <span
+                style={{
+                  background: tour === "wta" ? "#fce7f3" : "var(--primary-bg)",
+                  color: tour === "wta" ? "#be185d" : "var(--primary)",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "2px 8px",
+                  borderRadius: 20,
+                }}
+              >
+                {tour.toUpperCase()}
+              </span>
             </div>
-          )}
-
-          <div>
-            <h1 style={{ margin: "0 0 4px" }}>{player.name}</h1>
-            <p style={{ margin: "0 0 8px", color: "#666" }}>
+            <p
+              style={{
+                color: "var(--text-muted)",
+                marginBottom: 16,
+                fontSize: 14,
+              }}
+            >
               {player.country?.name ?? player.countryAcr} · {info.plays || "—"}
             </p>
 
-            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-              <Stat label="Rank" value={player.curRank?.position ?? "—"} />
-              <Stat
-                label="Best Rank"
-                value={player.bestRank?.position ?? "—"}
-              />
-              <Stat
-                label="Points"
-                value={
-                  player.points ? Number(player.points).toLocaleString() : "—"
-                }
-              />
-              <Stat label="Status" value={player.playerStatus ?? "—"} />
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {[
+                { label: "Rank", value: player.curRank?.position ?? "—" },
+                { label: "Best Rank", value: player.bestRank?.position ?? "—" },
+                {
+                  label: "Points",
+                  value: player.points
+                    ? Number(player.points).toLocaleString()
+                    : "—",
+                },
+                { label: "Status", value: player.playerStatus ?? "—" },
+              ].map(({ label, value }) => (
+                <div key={label} className="stat-box">
+                  <div className="stat-label">{label}</div>
+                  <div className="stat-value">{value}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Recent form */}
-        {player.form?.length > 0 && (
-          <Section title="Recent Form">
-            <div style={{ display: "flex", gap: 6 }}>
-              {player.form.map((r, i) => (
-                <span
-                  key={i}
-                  style={{
-                    display: "inline-block",
-                    width: 28,
-                    height: 28,
-                    lineHeight: "28px",
-                    textAlign: "center",
-                    borderRadius: "50%",
-                    fontWeight: 700,
-                    fontSize: 12,
-                    color: "white",
-                    backgroundColor: FORM_COLORS[r.toLowerCase()] ?? "#999",
-                  }}
-                >
-                  {r.toUpperCase()}
-                </span>
-              ))}
-            </div>
-          </Section>
-        )}
+      {/* Recent form */}
+      {player.form?.length > 0 && (
+        <Section title="Recent Form">
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {player.form.map((r, i) => (
+              <span key={i} className={`form-dot ${r.toLowerCase()}`}>
+                {r.toUpperCase()}
+              </span>
+            ))}
+          </div>
+        </Section>
+      )}
 
-        {/* Bio */}
-        {info.coach && (
-          <Section title="Bio">
+      {/* Bio */}
+      {(info.coach || info.birthplace) && (
+        <Section title="Biography">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+              gap: "8px 24px",
+            }}
+          >
             <InfoRow label="Birthplace" value={info.birthplace} />
             <InfoRow label="Residence" value={info.residence} />
             <InfoRow
@@ -229,120 +219,89 @@ export default function PlayerDetailPage() {
             <InfoRow label="Coach" value={info.coach} />
             <InfoRow label="Turned Pro" value={info.turnedPro} />
             <InfoRow label="Plays" value={info.plays} />
-          </Section>
-        )}
+          </div>
+        </Section>
+      )}
 
-        {/* Surface summary */}
-        {surface.length > 0 && (
-          <Section title="Surface Performance (current season)">
-            <table
-              style={{
-                borderCollapse: "collapse",
-                width: "100%",
-                maxWidth: 400,
-              }}
-            >
+      {/* Surface */}
+      {surface.length > 0 && (
+        <Section title="Surface Performance (current season)">
+          <div className="table-wrapper">
+            <table>
               <thead>
-                <tr
-                  style={{ borderBottom: "2px solid #ddd", textAlign: "left" }}
-                >
-                  <th style={{ padding: "6px 10px" }}>Surface</th>
-                  <th style={{ padding: "6px 10px" }}>W</th>
-                  <th style={{ padding: "6px 10px" }}>L</th>
-                  <th style={{ padding: "6px 10px" }}>Win %</th>
+                <tr>
+                  <th>Surface</th>
+                  <th>W</th>
+                  <th>L</th>
+                  <th>Win %</th>
                 </tr>
               </thead>
               <tbody>
                 {surface.map((s) => {
                   const w = Number(s.courtWins ?? 0);
                   const l = Number(s.courtLosses ?? 0);
-                  const pct = w + l > 0 ? Math.round((w / (w + l)) * 100) : "—";
+                  const pct =
+                    w + l > 0 ? Math.round((w / (w + l)) * 100) : null;
                   return (
-                    <tr
-                      key={s.courtId}
-                      style={{ borderBottom: "1px solid #eee" }}
-                    >
-                      <td style={{ padding: "6px 10px" }}>{s.court}</td>
-                      <td
-                        style={{
-                          padding: "6px 10px",
-                          color: "#2f8f4e",
-                          fontWeight: 700,
-                        }}
-                      >
+                    <tr key={s.courtId}>
+                      <td style={{ fontWeight: 600 }}>{s.court}</td>
+                      <td style={{ color: "var(--success)", fontWeight: 700 }}>
                         {w}
                       </td>
-                      <td
-                        style={{
-                          padding: "6px 10px",
-                          color: "#c0392b",
-                          fontWeight: 700,
-                        }}
-                      >
+                      <td style={{ color: "var(--danger)", fontWeight: 700 }}>
                         {l}
                       </td>
-                      <td style={{ padding: "6px 10px" }}>
-                        {pct}
-                        {typeof pct === "number" ? "%" : ""}
-                      </td>
+                      <td>{pct !== null ? `${pct}%` : "—"}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          </Section>
-        )}
+          </div>
+        </Section>
+      )}
 
-        {/* Titles */}
-        {titles.length > 0 && (
-          <Section title="Career Titles by Tier">
-            <table
-              style={{
-                borderCollapse: "collapse",
-                width: "100%",
-                maxWidth: 400,
-              }}
-            >
+      {/* Titles */}
+      {titles.length > 0 && (
+        <Section title="Career Titles by Tier">
+          <div className="table-wrapper">
+            <table>
               <thead>
-                <tr
-                  style={{ borderBottom: "2px solid #ddd", textAlign: "left" }}
-                >
-                  <th style={{ padding: "6px 10px" }}>Tier</th>
-                  <th style={{ padding: "6px 10px" }}>Titles</th>
-                  <th style={{ padding: "6px 10px" }}>Finals Lost</th>
+                <tr>
+                  <th>Tier</th>
+                  <th>Titles</th>
+                  <th>Finals Lost</th>
                 </tr>
               </thead>
               <tbody>
                 {titles.map((t) => (
-                  <tr
-                    key={t.tourRankId}
-                    style={{ borderBottom: "1px solid #eee" }}
-                  >
-                    <td style={{ padding: "6px 10px" }}>{t.tourRank}</td>
-                    <td style={{ padding: "6px 10px", fontWeight: 700 }}>
+                  <tr key={t.tourRankId}>
+                    <td>{t.tourRank}</td>
+                    <td style={{ fontWeight: 700, color: "var(--success)" }}>
                       {t.titlesWon}
                     </td>
-                    <td style={{ padding: "6px 10px" }}>{t.titlesLost}</td>
+                    <td style={{ color: "var(--text-muted)" }}>
+                      {t.titlesLost}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </Section>
-        )}
-      </div>
+          </div>
+        </Section>
+      )}
     </div>
   );
 }
 
-// Small helper components
 function Section({ title, children }) {
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div className="card" style={{ padding: 24, marginBottom: 16 }}>
       <h3
         style={{
-          borderBottom: "1px solid #eee",
-          paddingBottom: 8,
-          marginBottom: 12,
+          marginBottom: 16,
+          paddingBottom: 10,
+          borderBottom: "1px solid var(--border)",
         }}
       >
         {title}
@@ -352,41 +311,16 @@ function Section({ title, children }) {
   );
 }
 
-function Stat({ label, value }) {
-  return (
-    <div
-      style={{
-        background: "white",
-        border: "1px solid #e5e7eb",
-        borderRadius: 8,
-        padding: "10px 16px",
-        minWidth: 80,
-        textAlign: "center",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 11,
-          color: "#9ca3af",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          marginBottom: 4,
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e" }}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
 function InfoRow({ label, value }) {
   if (!value) return null;
   return (
-    <p style={{ margin: "4px 0" }}>
-      <strong>{label}:</strong> {value}
-    </p>
+    <div>
+      <span
+        style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}
+      >
+        {label}:{" "}
+      </span>
+      <span style={{ fontSize: 14 }}>{value}</span>
+    </div>
   );
 }

@@ -7,40 +7,34 @@ const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleRegister(e) {
     e.preventDefault();
     setError("");
-
     if (!name.trim() || !email.trim() || !password || !confirmPassword) {
       setError("All fields are required.");
       return;
     }
-
     if (!PASSWORD_REGEX.test(password)) {
       setError(
-        "Password must be at least 8 characters and include uppercase, lowercase, number and special character.",
+        "Password must be 8+ chars with uppercase, lowercase, number and special character.",
       );
       return;
     }
-
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
-
     try {
-      setStatus("Registering...");
-
+      setLoading(true);
       const res = await fetch(`${API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -51,19 +45,13 @@ export default function RegisterPage() {
           confirmPassword,
         }),
       });
-
       const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.error || `HTTP ${res.status}`);
-      }
-
-      // Registration OK → redirect to login
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       navigate("/login");
     } catch (err) {
       setError(err.message);
     } finally {
-      setStatus("");
+      setLoading(false);
     }
   }
 
@@ -74,121 +62,108 @@ export default function RegisterPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#f0f2f5",
-        fontFamily: "system-ui, sans-serif",
-        padding: 20, // Added padding for mobile responsiveness
+        background: "var(--bg)",
+        padding: 20,
       }}
     >
       <div
-        style={{
-          background: "forestgreen",
-          padding: 40,
-          borderRadius: 12,
-          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
-          width: "100%",
-          maxWidth: 380,
-        }}
+        className="card"
+        style={{ width: "100%", maxWidth: 380, padding: 40 }}
       >
-        {/* 1. Header Block */}
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>🎾</div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
-            ATP Tenis Hub
-          </h1>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🎾</div>
+          <h1 style={{ fontSize: 24, marginBottom: 4 }}>Create account</h1>
+          <p style={{ color: "var(--text-muted)", fontSize: 14 }}>
+            Join ATP Tenis Hub
+          </p>
         </div>
 
-        <h2 style={{ textAlign: "center", marginBottom: 20 }}>Register</h2>
-
-        {/* 2. Form - Now inside the card */}
         <form
           onSubmit={handleRegister}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
+          style={{ display: "flex", flexDirection: "column", gap: 14 }}
         >
-          <input
-            type="text"
-            placeholder="Name"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setError("");
-            }}
-          />
-
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setError("");
-            }}
-          />
-
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="form-group">
+            <label className="form-label">Name</label>
             <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
+              type="text"
+              placeholder="Your name"
+              value={name}
               onChange={(e) => {
-                setPassword(e.target.value);
+                setName(e.target.value);
                 setError("");
               }}
-              style={{ flex: 1 }}
             />
-            <button type="button" onClick={() => setShowPassword((p) => !p)}>
-              {showPassword ? "Hide" : "Show"}
-            </button>
           </div>
-
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="form-group">
+            <label className="form-label">Email</label>
             <input
-              type={showConfirmPassword ? "text" : "password"}
-              placeholder="Confirm password"
-              value={confirmPassword}
+              type="email"
+              placeholder="you@example.com"
+              value={email}
               onChange={(e) => {
-                setConfirmPassword(e.target.value);
+                setEmail(e.target.value);
                 setError("");
               }}
-              style={{ flex: 1 }}
             />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword((p) => !p)}
-            >
-              {showConfirmPassword ? "Hide" : "Show"}
-            </button>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type={showPass ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError("");
+                }}
+                style={{ flex: 1 }}
+              />
+              <button type="button" onClick={() => setShowPass((p) => !p)}>
+                {showPass ? "Hide" : "Show"}
+              </button>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Confirm password</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                type={showConfirm ? "text" : "password"}
+                placeholder="Repeat password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setError("");
+                }}
+                style={{ flex: 1 }}
+              />
+              <button type="button" onClick={() => setShowConfirm((p) => !p)}>
+                {showConfirm ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
 
-          <button type="submit" style={{ marginTop: 8, cursor: "pointer" }}>
-            Register
+          {error && <p className="error-text">{error}</p>}
+
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loading}
+            style={{ marginTop: 4, padding: "11px" }}
+          >
+            {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
 
-        {/* 3. Feedback and Links - Also inside the card */}
-        {error && (
-          <p
-            style={{
-              color: "red",
-              marginTop: 12,
-              fontSize: 14,
-              textAlign: "center",
-            }}
-          >
-            {error}
-          </p>
-        )}
-        {status && (
-          <p style={{ marginTop: 12, fontSize: 14, textAlign: "center" }}>
-            {status}
-          </p>
-        )}
-
-        <p style={{ marginTop: 20, textAlign: "center", fontSize: 14 }}>
-          Already have an account? <Link to="/login">Login here</Link>
+        <p
+          style={{
+            textAlign: "center",
+            marginTop: 20,
+            fontSize: 14,
+            color: "var(--text-muted)",
+          }}
+        >
+          Already have an account? <Link to="/login">Sign in</Link>
         </p>
       </div>
     </div>
