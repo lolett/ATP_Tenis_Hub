@@ -18,68 +18,79 @@ export default function RankingPage() {
       const res = await fetch(`${API_URL}/api/atp/ranking`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-
-      // Real API: { data: [ { position, point, player: { id, name, countryAcr } } ] }
-      const rows = json.data ?? json;
-      setRanking(rows);
+      // ATP WTA ITF: { data: [ { position, point, player: { id, name, countryAcr } } ] }
+      setRanking(json.data ?? []);
       setStatus("");
     } catch (err) {
       console.error(err);
-      setStatus("Error loading ATP ranking.");
+      setStatus("Error loading ranking. Is the backend running?");
     }
   }
 
   return (
-    <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px" }}>
       <h2>ATP Singles Ranking</h2>
-
       {status && <p>{status}</p>}
-
-      {!status && ranking.length === 0 && <p>No ranking data available.</p>}
+      {!status && ranking.length === 0 && <p>No data available.</p>}
 
       {ranking.length > 0 && (
-        <table
-          style={{ borderCollapse: "collapse", width: "100%", maxWidth: 700 }}
+        <div
+          style={{
+            background: "white",
+            borderRadius: 12,
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            overflow: "hidden",
+          }}
         >
-          <thead>
-            <tr style={{ borderBottom: "2px solid #ddd", textAlign: "left" }}>
-              <th style={{ padding: "8px 12px" }}>#</th>
-              <th style={{ padding: "8px 12px" }}>Player</th>
-              <th style={{ padding: "8px 12px" }}>Country</th>
-              <th style={{ padding: "8px 12px" }}>Points</th>
-              <th style={{ padding: "8px 12px" }}>Profile</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ranking.map((item) => {
-              const pos = item.position ?? item.rank;
-              const pts = item.point ?? item.points;
-              const player = item.player ?? item;
-              return (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ background: "#f9fafb" }}>
+                <th style={{ padding: "12px 16px", textAlign: "left" }}>#</th>
+                <th style={{ padding: "12px 16px", textAlign: "left" }}>
+                  Player
+                </th>
+                <th style={{ padding: "12px 16px", textAlign: "left" }}>
+                  Country
+                </th>
+                <th style={{ padding: "12px 16px", textAlign: "left" }}>
+                  Points
+                </th>
+                <th style={{ padding: "12px 16px", textAlign: "left" }}>
+                  Profile
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {ranking.map((item, i) => (
                 <tr
-                  key={item.id ?? pos}
-                  style={{ borderBottom: "1px solid #eee" }}
+                  key={item.id}
+                  style={{
+                    borderTop: "1px solid #f3f4f6",
+                    background: i % 2 === 0 ? "white" : "#fafafa",
+                  }}
                 >
-                  <td style={{ padding: "8px 12px", fontWeight: 700 }}>
-                    {pos}
+                  <td style={{ padding: "12px 16px", fontWeight: 700 }}>
+                    {item.position}
                   </td>
-                  <td style={{ padding: "8px 12px" }}>{player.name}</td>
-                  <td style={{ padding: "8px 12px" }}>
-                    {player.countryAcr ?? player.country}
+                  <td style={{ padding: "12px 16px" }}>{item.player.name}</td>
+                  <td style={{ padding: "12px 16px" }}>
+                    {item.player.countryAcr}
                   </td>
-                  <td style={{ padding: "8px 12px" }}>
-                    {Number(pts).toLocaleString()}
+                  <td style={{ padding: "12px 16px" }}>
+                    {Number(item.point).toLocaleString()}
                   </td>
-                  <td style={{ padding: "8px 12px" }}>
-                    <button onClick={() => navigate(`/players/${player.id}`)}>
+                  <td style={{ padding: "12px 16px" }}>
+                    <button
+                      onClick={() => navigate(`/players/${item.player.id}`)}
+                    >
                       View
                     </button>
                   </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

@@ -1,33 +1,30 @@
-// routes/atp.js - Proxy to Tennis API ATP WTA ITF (tennis-api-atp-wta-itf.p.rapidapi.com)
-// Docs: https://tennisapidoc.matchstat.com
+// routes/atp.js
+// Single API source: ATP WTA ITF (tennis-api-atp-wta-itf.p.rapidapi.com)
+// Ranking limited to ~11 players on free tier - acceptable for this project
 const express = require("express");
 const router = express.Router();
 
-const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY;
-const RAPIDAPI_HOST = process.env.RAPIDAPI_HOST; // tennis-api-atp-wta-itf.p.rapidapi.com
-const BASE_URL = `https://${RAPIDAPI_HOST}/tennis/v2`;
+const KEY = process.env.RAPIDAPI_KEY;
+const HOST = process.env.RAPIDAPI_HOST; // tennis-api-atp-wta-itf.p.rapidapi.com
+const BASE = `https://${HOST}/tennis/v2`;
 
-const headers = {
+const headers = () => ({
   "Content-Type": "application/json",
-  "x-rapidapi-host": RAPIDAPI_HOST,
-  "x-rapidapi-key": RAPIDAPI_KEY,
-};
+  "x-rapidapi-host": HOST,
+  "x-rapidapi-key": KEY,
+});
 
-// Helper: forward RapidAPI response or return 502
-async function rapidGet(res, path) {
+async function rapidGet(res, url) {
   try {
-    const response = await fetch(`${BASE_URL}${path}`, { headers });
-
+    const response = await fetch(url, { headers: headers() });
     if (!response.ok) {
       const text = await response.text();
-      console.error(`RapidAPI ${response.status} for ${path}: ${text}`);
+      console.error(`RapidAPI ${response.status} → ${url}: ${text}`);
       return res
         .status(502)
         .json({ error: `RapidAPI error ${response.status}` });
     }
-
-    const data = await response.json();
-    res.json(data);
+    res.json(await response.json());
   } catch (err) {
     console.error("RapidAPI fetch failed:", err.message);
     res.status(502).json({ error: "Failed to reach RapidAPI" });
@@ -35,47 +32,28 @@ async function rapidGet(res, path) {
 }
 
 // GET /api/atp/ranking
-// → /tennis/v2/atp/singlesranking
+// Returns { data: [ { position, point, player: { id, name, countryAcr, country } } ] }
+// player.id is the correct ATP WTA ITF id - use directly for profile navigation
 router.get("/ranking", (req, res) => {
-  rapidGet(res, "/atp/ranking/singles/");
-});
-
-// GET /api/atp/players?pageSize=50&pageNo=1
-// → /tennis/v2/atp/player
-router.get("/players", (req, res) => {
-  const pageSize = req.query.pageSize || 50;
-  const pageNo = req.query.pageNo || 1;
-  rapidGet(
-    res,
-    `/atp/player?pageSize=${pageSize}&pageNo=${pageNo}&filter=PlayerGroup:singles`,
-  );
+  rapidGet(res, `${BASE}/atp/ranking/singles`);
 });
 
 // GET /api/atp/players/:id
-// → /tennis/v2/atp/player/profile/:id?include=form,ranking,country
 router.get("/players/:id", (req, res) => {
   rapidGet(
     res,
-    `/atp/player/profile/${req.params.id}?include=form,ranking,country`,
+    `${BASE}/atp/player/profile/${req.params.id}?include=form,ranking,country`,
   );
 });
 
-// GET /api/atp/players/:id/stats
-// → /tennis/v2/atp/player/match-stats/:id
-router.get("/players/:id/stats", (req, res) => {
-  rapidGet(res, `/atp/player/match-stats/${req.params.id}`);
-});
-
 // GET /api/atp/players/:id/surface
-// → /tennis/v2/atp/player/surface-summary/:id
 router.get("/players/:id/surface", (req, res) => {
-  rapidGet(res, `/atp/player/surface-summary/${req.params.id}`);
+  rapidGet(res, `${BASE}/atp/player/surface-summary/${req.params.id}`);
 });
 
 // GET /api/atp/players/:id/titles
-// → /tennis/v2/atp/player/titles/:id
 router.get("/players/:id/titles", (req, res) => {
-  rapidGet(res, `/atp/player/titles/${req.params.id}`);
+  rapidGet(res, `${BASE}/atp/player/titles/${req.params.id}`);
 });
 
 module.exports = router;

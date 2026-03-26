@@ -68,83 +68,129 @@ export default function RegisterPage() {
   }
 
   return (
-    <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
-      <h1>ATP Tenis Hub</h1>
-      <h2>Register</h2>
-
-      <form
-        onSubmit={handleRegister}
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f0f2f5",
+        fontFamily: "system-ui, sans-serif",
+        padding: 20, // Added padding for mobile responsiveness
+      }}
+    >
+      <div
         style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-          maxWidth: 320,
+          background: "forestgreen",
+          padding: 40,
+          borderRadius: 12,
+          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+          width: "100%",
+          maxWidth: 380,
         }}
       >
-        <input
-          type="text"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setError("");
-          }}
-        />
-
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setError("");
-          }}
-        />
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder="Password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setError("");
-            }}
-            style={{ flex: 1 }}
-          />
-          <button type="button" onClick={() => setShowPassword((p) => !p)}>
-            {showPassword ? "Hide" : "Show"}
-          </button>
+        {/* 1. Header Block */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>🎾</div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
+            ATP Tenis Hub
+          </h1>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <h2 style={{ textAlign: "center", marginBottom: 20 }}>Register</h2>
+
+        {/* 2. Form - Now inside the card */}
+        <form
+          onSubmit={handleRegister}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
           <input
-            type={showConfirmPassword ? "text" : "password"}
-            placeholder="Confirm password"
-            value={confirmPassword}
+            type="text"
+            placeholder="Name"
+            value={name}
             onChange={(e) => {
-              setConfirmPassword(e.target.value);
+              setName(e.target.value);
               setError("");
             }}
-            style={{ flex: 1 }}
           />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword((p) => !p)}
+
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError("");
+            }}
+          />
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError("");
+              }}
+              style={{ flex: 1 }}
+            />
+            <button type="button" onClick={() => setShowPassword((p) => !p)}>
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                setError("");
+              }}
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((p) => !p)}
+            >
+              {showConfirmPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+
+          <button type="submit" style={{ marginTop: 8, cursor: "pointer" }}>
+            Register
+          </button>
+        </form>
+
+        {/* 3. Feedback and Links - Also inside the card */}
+        {error && (
+          <p
+            style={{
+              color: "red",
+              marginTop: 12,
+              fontSize: 14,
+              textAlign: "center",
+            }}
           >
-            {showConfirmPassword ? "Hide" : "Show"}
-          </button>
-        </div>
+            {error}
+          </p>
+        )}
+        {status && (
+          <p style={{ marginTop: 12, fontSize: 14, textAlign: "center" }}>
+            {status}
+          </p>
+        )}
 
-        <button type="submit">Register</button>
-      </form>
-
-      {error && <p style={{ color: "red", marginTop: 8 }}>{error}</p>}
-      {status && <p style={{ marginTop: 8 }}>{status}</p>}
-
-      <p style={{ marginTop: 12 }}>
-        Already have an account? <Link to="/login">Login here</Link>
-      </p>
+        <p style={{ marginTop: 20, textAlign: "center", fontSize: 14 }}>
+          Already have an account? <Link to="/login">Login here</Link>
+        </p>
+      </div>
     </div>
   );
 }

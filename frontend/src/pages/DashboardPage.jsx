@@ -142,132 +142,215 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return (
-    <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
-      <h2>{editingId ? "Edit activity" : "New activity"}</h2>
-
-      <form onSubmit={handleSubmit} style={{ marginBottom: 24 }}>
+    /* G4: Page Wrapper */
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px" }}>
+      {/* G1: Form Card */}
+      <div
+        style={{
+          background: "white",
+          padding: 24,
+          borderRadius: 12,
+          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+          marginBottom: 24,
+        }}
+      >
         <div
-          style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}
+          style={{
+            background: "white",
+            borderRadius: 12,
+            padding: 24,
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            marginBottom: 24,
+          }}
         >
-          <input
-            placeholder="Title (e.g. vs Juan) *"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setTitleError("");
-            }}
+          <h2
             style={{
-              border: titleError ? "1px solid red" : undefined,
-              minWidth: 180,
-            }}
-          />
-
-          <select value={type} onChange={(e) => setType(e.target.value)}>
-            <option value="match">Match</option>
-            <option value="training">Training</option>
-            <option value="workout">Workout</option>
-          </select>
-
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-
-          <input
-            placeholder="Surface (clay / hard / grass)"
-            value={surface}
-            onChange={(e) => setSurface(e.target.value)}
-          />
-
-          {/* Score field - only relevant for matches but available for all */}
-          <input
-            placeholder="Score (e.g. 6-3 7-5)"
-            value={score}
-            onChange={(e) => setScore(e.target.value)}
-          />
-
-          <input
-            placeholder="Notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </div>
-
-        {titleError && (
-          <p style={{ color: "red", margin: "4px 0 8px" }}>{titleError}</p>
-        )}
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <button type="submit">
-            {editingId ? "Save changes" : "Add activity"}
-          </button>
-          {editingId && (
-            <button type="button" onClick={resetForm}>
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
-
-      {status && <p>{status}</p>}
-
-      <h2>My activities</h2>
-
-      <input
-        placeholder="Filter by title..."
-        value={filterText}
-        onChange={(e) => setFilterText(e.target.value)}
-        style={{ marginBottom: 12 }}
-      />
-
-      <p>
-        <strong>Total:</strong> {filteredActivities.length}
-      </p>
-
-      {activities.length === 0 && !status && <p>No activities yet.</p>}
-      {activities.length > 0 && filteredActivities.length === 0 && (
-        <p>No activities match the filter.</p>
-      )}
-
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {filteredActivities.map((a) => (
-          <li
-            key={a.id}
-            style={{
-              marginBottom: 10,
+              marginBottom: 16,
               display: "flex",
               alignItems: "center",
               gap: 8,
-              flexWrap: "wrap",
             }}
           >
-            <strong>{a.title}</strong>
+            {editingId ? "✏️ Edit activity" : "➕ New activity"}
+          </h2>
 
-            <span
+          <form onSubmit={handleSubmit}>
+            <div
               style={{
-                padding: "2px 8px",
-                borderRadius: 12,
-                backgroundColor: TYPE_COLORS[a.type] || "#666",
-                color: "white",
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: "uppercase",
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                marginBottom: 8,
               }}
             >
-              {a.type}
-            </span>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr",
+                  gap: 10,
+                  marginBottom: 10,
+                }}
+              >
+                <input
+                  placeholder="Title (e.g. vs Juan) *"
+                  value={title}
+                  onChange={(e) => {
+                    setTitle(e.target.value);
+                    setTitleError("");
+                  }}
+                  style={{
+                    border: titleError ? "1px solid red" : "1px solid #ddd",
+                    minWidth: 180,
+                    padding: "8px",
+                    borderRadius: 4,
+                  }}
+                />
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  style={{ padding: "8px", borderRadius: 4 }}
+                >
+                  <option value="match">Match</option>
+                  <option value="training">Training</option>
+                  <option value="workout">Workout</option>
+                </select>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  style={{ padding: "8px", borderRadius: 4 }}
+                />
+                <input
+                  placeholder="Surface"
+                  value={surface}
+                  onChange={(e) => setSurface(e.target.value)}
+                  style={{ padding: "8px", borderRadius: 4 }}
+                />
+                <input
+                  placeholder="Score"
+                  value={score}
+                  onChange={(e) => setScore(e.target.value)}
+                  style={{ padding: "8px", borderRadius: 4 }}
+                />
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto",
+                    gap: 10,
+                  }}
+                >
+                  <input
+                    placeholder="Notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    style={{ padding: "8px", borderRadius: 4 }}
+                  />
+                </div>
+              </div>
+            </div>
 
-            <span>{a.date}</span>
-            {a.surface && <span>· {a.surface}</span>}
-            {a.score && <span>· {a.score}</span>}
-            {a.notes && <span>· {a.notes}</span>}
+            {titleError && (
+              <p style={{ color: "red", margin: "4px 0 8px" }}>{titleError}</p>
+            )}
 
-            <button onClick={() => startEdit(a)}>Edit</button>
-            <button onClick={() => deleteActivity(a.id)}>Delete</button>
-          </li>
-        ))}
-      </ul>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="submit">
+                {editingId ? "Save changes" : "Add activity"}
+              </button>
+              {editingId && (
+                <button type="button" onClick={resetForm}>
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+        {status && <p style={{ marginTop: 8, color: "#666" }}>{status}</p>}
+      </div>
+
+      {/* G1: Activities List Card */}
+      <div
+        style={{
+          background: "white",
+          padding: 24,
+          borderRadius: 12,
+          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+        }}
+      >
+        <h2 style={{ marginBottom: 16 }}>My activities</h2>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr",
+            gap: 10,
+            marginBottom: 10,
+          }}
+        >
+          <input
+            placeholder="Filter by title..."
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            style={{
+              marginBottom: 12,
+              padding: "8px",
+              width: "100%",
+              maxWidth: 300,
+              borderRadius: 4,
+              border: "1px solid #ddd",
+            }}
+          />
+        </div>
+
+        <p style={{ marginBottom: 16 }}>
+          <strong>Total:</strong> {filteredActivities.length}
+        </p>
+
+        {activities.length === 0 && !status && <p>No activities yet.</p>}
+
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {filteredActivities.map((a) => (
+            <li
+              key={a.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "14px 0",
+                borderBottom: "1px solid #f3f4f6",
+                listStyle: "none",
+              }}
+            >
+              <strong style={{ flex: 1 }}>{a.title}</strong>
+              <span
+                style={{
+                  padding: "2px 8px",
+                  borderRadius: 12,
+                  backgroundColor: TYPE_COLORS[a.type] || "#666",
+                  color: "white",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                }}
+              >
+                {a.type}
+              </span>
+              <span style={{ color: "#6b7280" }}>{a.date}</span>
+              <div style={{ flex: 1, fontSize: 14, color: "#6b7280" }}>
+                {a.surface && <span> · {a.surface}</span>}
+                {a.score && <span> · {a.score}</span>}
+                {a.notes && <span> · {a.notes}</span>}
+              </div>
+              <button onClick={() => startEdit(a)}>Edit</button>
+              <button
+                onClick={() => deleteActivity(a.id)}
+                style={{ color: "#dc2626", borderColor: "#fca5a5" }}
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }

@@ -48,55 +48,106 @@ export default function LoginPage() {
     }
   }
 
-  return (
-    <div style={{ padding: 24, fontFamily: "system-ui, sans-serif" }}>
-      <h1>ATP Tenis Hub</h1>
-      <h2>Login</h2>
+  <div
+    style={{
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "#f0f2f5",
+    }}
+  >
+    <div
+      style={{
+        background: "white",
+        padding: 40,
+        borderRadius: 12,
+        boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+        width: "100%",
+        maxWidth: 380,
+      }}
+    >
+      {/* existing form content here */}
+    </div>
+  </div>;
 
-      <form
-        onSubmit={handleLogin}
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f0f2f5",
+        fontFamily: "system-ui, sans-serif",
+        padding: 20, // Added padding for mobile responsiveness
+      }}
+    >
+      <div
         style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-          maxWidth: 320,
+          background: "deepskyblue",
+          padding: 40,
+          borderRadius: 12,
+          boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+          width: "100%",
+          maxWidth: 380,
         }}
       >
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setError("");
-          }}
-        />
-
-        <div style={{ display: "flex", gap: 8 }}>
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder="Password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setError("");
-            }}
-            style={{ flex: 1 }}
-          />
-          <button type="button" onClick={() => setShowPassword((p) => !p)}>
-            {showPassword ? "Hide" : "Show"}
-          </button>
+        {/* 1. Header Block */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ fontSize: 36, marginBottom: 8 }}>🎾</div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
+            ATP Tenis Hub
+          </h1>
         </div>
 
-        <button type="submit">Login</button>
-      </form>
+        <h2 style={{ textAlign: "center", marginBottom: 20 }}>Login</h2>
 
-      {error && <p style={{ color: "red", marginTop: 8 }}>{error}</p>}
-      {status && <p style={{ marginTop: 8 }}>{status}</p>}
+        <form
+          onSubmit={handleLogin}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            maxWidth: 320,
+          }}
+        >
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError("");
+            }}
+          />
 
-      <p style={{ marginTop: 12 }}>
-        No account yet? <Link to="/register">Register here</Link>
-      </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError("");
+              }}
+              style={{ flex: 1 }}
+            />
+            <button type="button" onClick={() => setShowPassword((p) => !p)}>
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+
+          <button type="submit">Login</button>
+        </form>
+
+        {error && <p style={{ color: "red", marginTop: 8 }}>{error}</p>}
+        {status && <p style={{ marginTop: 8 }}>{status}</p>}
+
+        <p style={{ marginTop: 12 }}>
+          No account yet? <Link to="/register">Register here</Link>
+        </p>
+      </div>
     </div>
   );
 }
