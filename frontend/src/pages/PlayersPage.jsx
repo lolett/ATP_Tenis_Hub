@@ -1,75 +1,60 @@
 // pages/PlayersPage.jsx
-// Photo solutions considered:
-// A) CSS object-position: top center → shifts crop upward to show face. Simple but imprecise.
-// B) face-api.js → detect face bounding box, reposition crop. Accurate but adds 2MB JS dependency.
-// C) Wikipedia thumbnail URL manipulation → request square thumbnail centered on face.
-//    Wikipedia generates thumbnails at any width: add ?width=N to get square crop from top.
-//    Most player photos are portrait shots with face at top - requesting a square crop
-//    at ~300px width gives a face-focused result without extra libraries.
-// CHOSEN: C (Wikipedia thumbnail manipulation) + CSS object-position: top center as backup.
-// Why: zero dependencies, works for 90%+ of player photos, degrades gracefully.
+// Windows-safe fallback: gradient + initials (flag emojis not supported on Windows)
+// Grid: explicit 4 columns desktop / 3 tablet / 2 mobile via CSS class
+// Photos: Wikipedia REST API with face-focused crop (objectPosition: top center)
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../api/client";
 
-// Alpha3 → Alpha2 for flag emoji
-const A3_TO_A2 = {
-  ESP: "ES",
-  ITA: "IT",
-  SRB: "RS",
-  GER: "DE",
-  AUS: "AU",
-  USA: "US",
-  CAN: "CA",
-  RUS: "RU",
-  KAZ: "KZ",
-  GBR: "GB",
-  FRA: "FR",
-  POL: "PL",
-  CZE: "CZ",
-  BLR: "BY",
-  ROU: "RO",
-  JPN: "JP",
-  CHN: "CN",
-  BEL: "BE",
-  SUI: "CH",
-  ARG: "AR",
-  BRA: "BR",
-  GRE: "GR",
-  NOR: "NO",
-  DEN: "DK",
-  NED: "NL",
-  CRO: "HR",
-  SVK: "SK",
-  LAT: "LV",
-  UKR: "UA",
-  AUT: "AT",
-  SWE: "SE",
-  FIN: "FI",
-  POR: "PT",
-  HUN: "HU",
-  KOR: "KR",
-  TPE: "TW",
-  THA: "TH",
-  IND: "IN",
-  ZIM: "ZW",
-  RSA: "ZA",
-  QAT: "QA",
-  UAE: "AE",
-  SAU: "SA",
+// Country alpha3 → background gradient color (Windows-safe, no emoji flags)
+const COUNTRY_COLORS = {
+  ESP: ["#c60b1e", "#ffc400"],
+  ITA: ["#009246", "#ce2b37"],
+  SRB: ["#c6363c", "#0c4076"],
+  GER: ["#000000", "#dd0000"],
+  AUS: ["#00008b", "#ef4135"],
+  USA: ["#3c3b6e", "#b22234"],
+  CAN: ["#ff0000", "#ffffff"],
+  RUS: ["#003087", "#e4181c"],
+  KAZ: ["#00afca", "#ffd700"],
+  GBR: ["#012169", "#c8102e"],
+  FRA: ["#002395", "#ed2939"],
+  POL: ["#dc143c", "#ffffff"],
+  CZE: ["#d7141a", "#11457e"],
+  BLR: ["#cf101a", "#4aa657"],
+  ROU: ["#002B7F", "#FCD116"],
+  JPN: ["#BC002D", "#ffffff"],
+  CHN: ["#DE2910", "#FFDE00"],
+  BEL: ["#000000", "#FAE042"],
+  SUI: ["#FF0000", "#ffffff"],
+  ARG: ["#74ACDF", "#ffffff"],
+  BRA: ["#009C3B", "#FEDF00"],
+  GRE: ["#0D5EAF", "#ffffff"],
+  NOR: ["#EF2B2D", "#003087"],
+  DEN: ["#C60C30", "#ffffff"],
+  NED: ["#AE1C28", "#21468B"],
+  CRO: ["#FF0000", "#0093DD"],
+  UKR: ["#005BBB", "#FFD500"],
+  AUT: ["#ED2939", "#ffffff"],
+  SWE: ["#006AA7", "#FECC02"],
+  FIN: ["#003580", "#ffffff"],
 };
 
-function flag(alpha3) {
-  const a2 = A3_TO_A2[alpha3?.toUpperCase()];
-  if (!a2 || a2.length !== 2) return "🌍";
-  return String.fromCodePoint(...[...a2].map((c) => c.charCodeAt(0) + 127397));
+function getCountryGradient(code) {
+  const colors = COUNTRY_COLORS[code?.toUpperCase()];
+  if (!colors) return "linear-gradient(135deg, #374151, #6b7280)";
+  return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
 }
 
-// Fetch Wikipedia photo and return a square face-crop URL
-// Wikipedia thumbnail API: /api/rest_v1/page/summary/{name}
-// Returns thumbnail.source with ?width=N for sizing
-// We request width=300 to get a tighter square crop showing the face
-async function fetchFacePhoto(name) {
+function getInitials(name) {
+  if (!name) return "?";
+  const parts = name.trim().split(" ");
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Fetch Wikipedia photo with face-focused crop
+async function fetchPhoto(name) {
   try {
     const slug = name.trim().replace(/\s+/g, "_");
     const res = await fetch(
@@ -77,14 +62,10 @@ async function fetchFacePhoto(name) {
     );
     if (!res.ok) return null;
     const data = await res.json();
-    let url = data.thumbnail?.source ?? null;
+    const url = data.thumbnail?.source;
     if (!url) return null;
-
-    // Replace width parameter to get square crop at 300px
-    // Wikipedia format: .../{width}px-{filename}
-    // Requesting 300px gives a tighter crop showing the face region
-    url = url.replace(/\/\d+px-/, "/300px-");
-    return url;
+    // 300px gives tighter face-focused crop
+    return url.replace(/\/\d+px-/, "/300px-");
   } catch {
     return null;
   }
@@ -93,65 +74,74 @@ async function fetchFacePhoto(name) {
 function PlayerCard({ item, tour, onClick }) {
   const [photo, setPhoto] = useState(null);
   const [imgError, setImgError] = useState(false);
+  const [imgReady, setImgReady] = useState(false);
   const loaded = useRef(false);
 
-  useEffect(() => {
-    if (loaded.current) return;
-    loaded.current = true;
-    fetchFacePhoto(item.player.name).then(setPhoto);
-  }, [item.player.name]);
+  const code = item.player?.countryAcr ?? "";
+  const name = item.player?.name ?? "";
+  const gradient = getCountryGradient(code);
+  const initials = getInitials(name);
 
-  const code = item.player.countryAcr ?? "";
+  useEffect(() => {
+    if (loaded.current || !name) return;
+    loaded.current = true;
+    let cancelled = false;
+    fetchPhoto(name).then((url) => {
+      if (!cancelled && url) setPhoto(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [name]);
 
   return (
-    <div
-      onClick={onClick}
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--border)",
-        borderRadius: 14,
-        overflow: "hidden",
-        cursor: "pointer",
-        transition: "box-shadow 0.2s, transform 0.2s",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "var(--shadow-md)";
-        e.currentTarget.style.transform = "translateY(-4px)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "none";
-        e.currentTarget.style.transform = "none";
-      }}
-    >
-      {/* Photo area - fixed height, face-focused crop */}
-      <div
-        style={{
-          height: 180,
-          background: "var(--surface-2)",
-          overflow: "hidden",
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {photo && !imgError ? (
+    <div onClick={onClick} className="player-card">
+      {/* Photo / gradient fallback */}
+      <div className="player-card-photo" style={{ background: gradient }}>
+        {/* Country gradient always visible as base */}
+        {/* Photo overlaid when available */}
+        {photo && !imgError && (
           <img
             src={photo}
-            alt={item.player.name}
+            alt={name}
+            onLoad={() => setImgReady(true)}
             onError={() => setImgError(true)}
             style={{
+              position: "absolute",
+              inset: 0,
               width: "100%",
               height: "100%",
               objectFit: "cover",
-              // object-position: top center ensures face shows instead of torso
               objectPosition: "top center",
-              display: "block",
+              opacity: imgReady ? 1 : 0,
+              transition: "opacity 0.4s ease",
             }}
           />
-        ) : (
-          // Fallback: large country flag emoji
-          <span style={{ fontSize: 64, lineHeight: 1 }}>{flag(code)}</span>
+        )}
+
+        {/* Initials shown when no photo loaded yet */}
+        {(!imgReady || imgError) && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 42,
+                fontWeight: 900,
+                color: "rgba(255,255,255,0.9)",
+                textShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                letterSpacing: 2,
+              }}
+            >
+              {initials}
+            </span>
+          </div>
         )}
 
         {/* Rank badge */}
@@ -160,13 +150,14 @@ function PlayerCard({ item, tour, onClick }) {
             position: "absolute",
             top: 10,
             right: 10,
-            background: "var(--primary)",
-            color: "#fff",
-            fontSize: 12,
+            background: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(6px)",
+            color: "white",
+            fontSize: 11,
             fontWeight: 800,
             padding: "3px 10px",
             borderRadius: 20,
-            boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+            border: "1px solid rgba(255,255,255,0.2)",
           }}
         >
           #{item.position}
@@ -174,31 +165,30 @@ function PlayerCard({ item, tour, onClick }) {
       </div>
 
       {/* Info */}
-      <div style={{ padding: "14px 14px 16px" }}>
+      <div style={{ padding: "12px 14px 14px" }}>
         <div
           style={{
             fontWeight: 700,
-            fontSize: 14,
-            marginBottom: 4,
+            fontSize: 13,
+            marginBottom: 3,
             color: "var(--text)",
+            lineHeight: 1.3,
           }}
         >
-          {item.player.name}
+          {name}
+        </div>
+        <div
+          style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 6 }}
+        >
+          {code}
         </div>
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 5,
-            fontSize: 12,
-            color: "var(--text-muted)",
-            marginBottom: 8,
+            fontSize: 11,
+            fontWeight: 700,
+            color: "var(--primary)",
           }}
         >
-          <span>{flag(code)}</span>
-          <span>{code}</span>
-        </div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
           {Number(item.point).toLocaleString()} pts
         </div>
       </div>
@@ -270,14 +260,7 @@ export default function PlayersPage() {
 
       {status && <p style={{ color: "var(--text-muted)" }}>{status}</p>}
 
-      {/* 4-column grid on desktop, auto-fills on mobile */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
-          gap: 16,
-        }}
-      >
+      <div className="players-grid">
         {players.map((item) => (
           <PlayerCard
             key={item.player.id}

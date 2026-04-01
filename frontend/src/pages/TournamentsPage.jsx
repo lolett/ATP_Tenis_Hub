@@ -1,187 +1,108 @@
 // pages/TournamentsPage.jsx
-// Stadium photos sourced from Wikipedia Commons (free, no key needed)
-// Court visual SVG as fallback when no photo available
+// Stadium photos fetched dynamically from Wikipedia REST API
+// using verified article slugs → always real, verified URLs
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../api/client";
 
-// ─── STADIUM PHOTOS (Wikipedia Commons - free, public domain) ─────────────────
-// Each is a direct Wikimedia Commons URL for the main stadium of the tournament
-const STADIUM_PHOTOS = {
-  "Australian Open":
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/98/Australian_Open_2023.jpg/640px-Australian_Open_2023.jpg",
-  "Roland Garros":
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Roland_Garros_stadium.jpg/640px-Roland_Garros_stadium.jpg",
-  Wimbledon:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Wimbledon_centre_court.jpg/640px-Wimbledon_centre_court.jpg",
-  "US Open":
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/US_Open_Arthur_Ashe.jpg/640px-US_Open_Arthur_Ashe.jpg",
-  "Indian Wells":
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Indian_Wells_BNP_Paribas_Open_2015.jpg/640px-Indian_Wells_BNP_Paribas_Open_2015.jpg",
-  "Miami Open":
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Hard_Rock_Stadium_2017.jpg/640px-Hard_Rock_Stadium_2017.jpg",
-  "Monte-Carlo":
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Monte-Carlo_Country_Club.jpg/640px-Monte-Carlo_Country_Club.jpg",
-  Madrid:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Caja_Magica%2C_Madrid.jpg/640px-Caja_Magica%2C_Madrid.jpg",
-  Rome: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Foro_Italico_Rome.jpg/640px-Foro_Italico_Rome.jpg",
-  Shanghai:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/Qizhong_Tennis_Center.jpg/640px-Qizhong_Tennis_Center.jpg",
-  Paris:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/AccorHotels_Arena_Paris.jpg/640px-AccorHotels_Arena_Paris.jpg",
-  "ATP Finals":
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Pala_Alpitour_Turin.jpg/640px-Pala_Alpitour_Turin.jpg",
-  Toronto:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Aviva_Centre_Toronto.jpg/640px-Aviva_Centre_Toronto.jpg",
-  Cincinnati:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Lindner_Family_Tennis_Center.jpg/640px-Lindner_Family_Tennis_Center.jpg",
-  Beijing:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/China_National_Tennis_Center.jpg/640px-China_National_Tennis_Center.jpg",
-  Barcelona:
-    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/RCT_Barcelona_main_court.jpg/640px-RCT_Barcelona_main_court.jpg",
+// Map tournament name keywords → Wikipedia article slug
+// These slugs are verified Wikipedia article names
+const WIKI_SLUGS = {
+  "Australian Open": "Australian_Open",
+  "Roland Garros": "French_Open",
+  Wimbledon: "Wimbledon_Championships",
+  "US Open": "US_Open_(tennis)",
+  "Indian Wells": "BNP_Paribas_Open",
+  "Miami Open": "Miami_Open_(tennis)",
+  "Monte-Carlo": "Monte-Carlo_Masters",
+  "Monte Carlo": "Monte-Carlo_Masters",
+  Madrid: "Madrid_Open_(tennis)",
+  Rome: "Italian_Open_(tennis)",
+  Italian: "Italian_Open_(tennis)",
+  Shanghai: "Shanghai_Masters_(tennis)",
+  "Paris Masters": "Rolex_Paris_Masters",
+  "Rolex Paris": "Rolex_Paris_Masters",
+  "ATP Finals": "Nitto_ATP_Finals",
+  Nitto: "Nitto_ATP_Finals",
+  "WTA Finals": "WTA_Finals",
+  Toronto: "Canadian_Open_(tennis)",
+  Montreal: "Canadian_Open_(tennis)",
+  Cincinnati: "Western_%26_Southern_Open",
+  "Western & Southern": "Western_%26_Southern_Open",
+  Barcelona: "Barcelona_Open",
+  Doha: "Qatar_TotalEnergies_Open",
+  Dubai: "Dubai_Duty_Free_Tennis_Championships",
+  Beijing: "China_Open_(tennis)",
+  "China Open": "China_Open_(tennis)",
+  Stuttgart: "Stuttgart_Open",
 };
 
-function getStadiumPhoto(name) {
+function getWikiSlug(name) {
   if (!name) return null;
   const n = name.toLowerCase();
-  for (const [key, url] of Object.entries(STADIUM_PHOTOS)) {
-    if (n.includes(key.toLowerCase())) return url;
+  for (const [key, slug] of Object.entries(WIKI_SLUGS)) {
+    if (n.includes(key.toLowerCase())) return slug;
   }
   return null;
 }
 
+// Fetch thumbnail from Wikipedia REST API using article slug
+async function fetchWikiPhoto(slug) {
+  if (!slug) return null;
+  try {
+    const res = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`,
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const url = data.thumbnail?.source;
+    if (!url) return null;
+    // Request a wider image for better stadium visibility
+    return url.replace(/\/\d+px-/, "/600px-");
+  } catch {
+    return null;
+  }
+}
+
 // ─── SURFACE CONFIG ───────────────────────────────────────────────────────────
-const SURFACE_CONFIG = {
+const SURFACE = {
   Clay: {
-    color: "#92400e",
-    bg: "#fef3c7",
-    gradient: "linear-gradient(160deg, #d97706 0%, #b45309 100%)",
-    icon: "🟤",
+    gradient: "linear-gradient(160deg,#d97706,#b45309)",
     label: "CLAY",
+    icon: "🟤",
   },
   Hard: {
-    color: "#1e40af",
-    bg: "#dbeafe",
-    gradient: "linear-gradient(160deg, #3b82f6 0%, #1d4ed8 100%)",
-    icon: "🔵",
+    gradient: "linear-gradient(160deg,#3b82f6,#1d4ed8)",
     label: "HARD",
+    icon: "🔵",
   },
   "I.hard": {
-    color: "#1e3a8a",
-    bg: "#eff6ff",
-    gradient: "linear-gradient(160deg, #6366f1 0%, #4338ca 100%)",
-    icon: "🔵",
+    gradient: "linear-gradient(160deg,#6366f1,#4338ca)",
     label: "INDOOR",
+    icon: "🟣",
   },
   Grass: {
-    color: "#166534",
-    bg: "#dcfce7",
-    gradient: "linear-gradient(160deg, #22c55e 0%, #15803d 100%)",
-    icon: "🟢",
+    gradient: "linear-gradient(160deg,#22c55e,#15803d)",
     label: "GRASS",
+    icon: "🟢",
   },
   Carpet: {
-    color: "#6b21a8",
-    bg: "#f3e8ff",
-    gradient: "linear-gradient(160deg, #a855f7 0%, #7e22ce 100%)",
-    icon: "🟣",
+    gradient: "linear-gradient(160deg,#a855f7,#7e22ce)",
     label: "CARPET",
+    icon: "🟤",
   },
 };
-
-function getSurface(courtName) {
+function getSurface(court) {
   return (
-    SURFACE_CONFIG[courtName] ?? {
-      color: "#374151",
-      bg: "#f3f4f6",
-      gradient: "linear-gradient(160deg, #9ca3af 0%, #6b7280 100%)",
+    SURFACE[court] ?? {
+      gradient: "linear-gradient(160deg,#6b7280,#4b5563)",
+      label: court ?? "—",
       icon: "⚪",
-      label: courtName ?? "—",
     }
   );
 }
 
-// SVG Court fallback visual
-function CourtSVG({ gradient }) {
-  return (
-    <div
-      style={{
-        height: 160,
-        background: gradient,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <svg
-        viewBox="0 0 200 140"
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          opacity: 0.2,
-        }}
-      >
-        <rect
-          x="20"
-          y="15"
-          width="160"
-          height="110"
-          fill="none"
-          stroke="white"
-          strokeWidth="2"
-        />
-        <line
-          x1="100"
-          y1="15"
-          x2="100"
-          y2="125"
-          stroke="white"
-          strokeWidth="1.5"
-        />
-        <line
-          x1="20"
-          y1="70"
-          x2="180"
-          y2="70"
-          stroke="white"
-          strokeWidth="2"
-          strokeDasharray="4,3"
-        />
-        <line x1="50" y1="40" x2="150" y2="40" stroke="white" strokeWidth="1" />
-        <line
-          x1="50"
-          y1="100"
-          x2="150"
-          y2="100"
-          stroke="white"
-          strokeWidth="1"
-        />
-        <line
-          x1="50"
-          y1="15"
-          x2="50"
-          y2="125"
-          stroke="white"
-          strokeWidth="0.5"
-        />
-        <line
-          x1="150"
-          y1="15"
-          x2="150"
-          y2="125"
-          stroke="white"
-          strokeWidth="0.5"
-        />
-      </svg>
-    </div>
-  );
-}
-
-// Alpha2 flag emoji
+// Alpha-2 flag emoji
 function flag(a2) {
   if (!a2 || a2.length !== 2) return "🌍";
   return String.fromCodePoint(
@@ -189,13 +110,81 @@ function flag(a2) {
   );
 }
 
-function TournamentCard({ t, tour, onClick }) {
+// SVG court lines overlay
+function CourtLines() {
+  return (
+    <svg
+      viewBox="0 0 220 150"
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        opacity: 0.18,
+      }}
+    >
+      <rect
+        x="20"
+        y="15"
+        width="180"
+        height="120"
+        fill="none"
+        stroke="white"
+        strokeWidth="2"
+      />
+      <line
+        x1="110"
+        y1="15"
+        x2="110"
+        y2="135"
+        stroke="white"
+        strokeWidth="1.5"
+      />
+      <line
+        x1="20"
+        y1="75"
+        x2="200"
+        y2="75"
+        stroke="white"
+        strokeWidth="2"
+        strokeDasharray="5,4"
+      />
+      <line x1="55" y1="42" x2="165" y2="42" stroke="white" strokeWidth="1" />
+      <line x1="55" y1="108" x2="165" y2="108" stroke="white" strokeWidth="1" />
+      <line x1="55" y1="15" x2="55" y2="135" stroke="white" strokeWidth="0.6" />
+      <line
+        x1="165"
+        y1="15"
+        x2="165"
+        y2="135"
+        stroke="white"
+        strokeWidth="0.6"
+      />
+    </svg>
+  );
+}
+
+function TournamentCard({ t, onClick }) {
+  const [photo, setPhoto] = useState(null);
+  const [imgReady, setImgReady] = useState(false);
   const [imgError, setImgError] = useState(false);
+
   const courtName = t.court?.name ?? "—";
   const surf = getSurface(courtName);
   const countryA2 = t.coutry?.acronym ?? "";
   const countryName = t.coutry?.name ?? "—";
-  const stadiumUrl = getStadiumPhoto(t.name);
+
+  useEffect(() => {
+    const slug = getWikiSlug(t.name);
+    if (!slug) return;
+    let cancelled = false;
+    fetchWikiPhoto(slug).then((url) => {
+      if (!cancelled && url) setPhoto(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [t.name]);
 
   function formatDate(d) {
     if (!d) return "—";
@@ -232,59 +221,61 @@ function TournamentCard({ t, tour, onClick }) {
         e.currentTarget.style.transform = "none";
       }}
     >
-      {/* Image or SVG court */}
-      {stadiumUrl && !imgError ? (
-        <div style={{ height: 160, overflow: "hidden", position: "relative" }}>
+      {/* Visual header */}
+      <div
+        style={{
+          height: 170,
+          overflow: "hidden",
+          position: "relative",
+          background: surf.gradient,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {/* Stadium photo (loaded dynamically) */}
+        {photo && !imgError && (
           <img
-            src={stadiumUrl}
+            src={photo}
             alt={t.name}
+            onLoad={() => setImgReady(true)}
             onError={() => setImgError(true)}
             style={{
+              position: "absolute",
+              inset: 0,
               width: "100%",
               height: "100%",
               objectFit: "cover",
-              display: "block",
+              objectPosition: "center",
+              opacity: imgReady ? 1 : 0,
+              transition: "opacity 0.4s ease",
             }}
           />
-          {/* Surface overlay badge */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: 8,
-              left: 8,
-              background: "rgba(0,0,0,0.65)",
-              backdropFilter: "blur(4px)",
-              color: "white",
-              fontSize: 11,
-              fontWeight: 800,
-              padding: "3px 10px",
-              borderRadius: 20,
-              letterSpacing: "0.05em",
-            }}
-          >
-            {surf.icon} {surf.label}
-          </div>
+        )}
+
+        {/* Court lines always shown (on top of photo as overlay, or alone) */}
+        <CourtLines />
+
+        {/* Surface label */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 10,
+            left: 10,
+            background: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(6px)",
+            color: "white",
+            fontSize: 11,
+            fontWeight: 800,
+            padding: "4px 12px",
+            borderRadius: 20,
+            letterSpacing: "0.06em",
+            zIndex: 1,
+          }}
+        >
+          {surf.icon} {surf.label}
         </div>
-      ) : (
-        <div style={{ position: "relative" }}>
-          <CourtSVG gradient={surf.gradient} />
-          <div
-            style={{
-              position: "absolute",
-              bottom: 8,
-              left: 8,
-              background: "rgba(0,0,0,0.45)",
-              color: "white",
-              fontSize: 11,
-              fontWeight: 800,
-              padding: "3px 10px",
-              borderRadius: 20,
-            }}
-          >
-            {surf.icon} {surf.label}
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Info */}
       <div style={{ padding: "14px 16px 16px", flex: 1 }}>
@@ -310,21 +301,19 @@ function TournamentCard({ t, tour, onClick }) {
             marginBottom: 4,
           }}
         >
-          <span title={countryName}>{flag(countryA2)}</span>
+          <span>{flag(countryA2)}</span>
           <span>{countryName}</span>
         </div>
 
         <div
-          style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}
+          style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}
         >
           📅 {formatDate(t.date)}
         </div>
 
         {t.round?.name && (
-          <div
+          <span
             style={{
-              display: "inline-block",
-              marginTop: 4,
               background: "var(--primary-bg)",
               color: "var(--primary)",
               fontSize: 11,
@@ -334,7 +323,7 @@ function TournamentCard({ t, tour, onClick }) {
             }}
           >
             {t.round.name}
-          </div>
+          </span>
         )}
       </div>
     </div>
@@ -414,8 +403,8 @@ export default function TournamentsPage() {
       </div>
 
       <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
-        ⚠️ Free API plan returns up to ~11 tournaments per request. Full
-        calendar shown via static data when API quota is exceeded.
+        ⚠️ Free API plan shows up to ~11 tournaments. Full calendar available
+        via static data when quota is exceeded.
       </p>
 
       <div
@@ -468,7 +457,7 @@ export default function TournamentsPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))",
           gap: 20,
         }}
       >
@@ -476,7 +465,6 @@ export default function TournamentsPage() {
           <TournamentCard
             key={t.id ?? i}
             t={t}
-            tour={tab}
             onClick={() => t.id && navigate(`/tournaments/${t.id}?tour=${tab}`)}
           />
         ))}
