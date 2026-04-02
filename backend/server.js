@@ -343,6 +343,9 @@ app.delete("/api/activities/:id", requireAuth, (req, res) => {
 const atpRoutes = require("./routes/atp");
 app.use("/api/atp", atpRoutes);
 
+const wikiRoutes = require("./routes/wiki");
+app.use("/api/wiki", wikiRoutes);
+
 // production log debug --> will be modified in production environment
 app.use((err, req, res, next) => {
   console.error(err);

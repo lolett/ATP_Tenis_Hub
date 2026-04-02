@@ -1,192 +1,244 @@
 // pages/TournamentsPage.jsx
-// Stadium photos fetched dynamically from Wikipedia REST API
-// using verified article slugs → always real, verified URLs
+// Tournament cards use a custom SVG court illustration as the visual header.
+// Stadium photos abandoned: Wikimedia CDN rate-limits server IPs consistently.
+// The court SVG is a deliberate design choice that clearly communicates
+// the surface type (clay/hard/grass/indoor) through color + illustration.
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../api/client";
 
-// Map tournament name keywords → Wikipedia article slug
-// These slugs are verified Wikipedia article names
-const WIKI_SLUGS = {
-  "Australian Open": "Australian_Open",
-  "Roland Garros": "French_Open",
-  Wimbledon: "Wimbledon_Championships",
-  "US Open": "US_Open_(tennis)",
-  "Indian Wells": "BNP_Paribas_Open",
-  "Miami Open": "Miami_Open_(tennis)",
-  "Monte-Carlo": "Monte-Carlo_Masters",
-  "Monte Carlo": "Monte-Carlo_Masters",
-  Madrid: "Madrid_Open_(tennis)",
-  Rome: "Italian_Open_(tennis)",
-  Italian: "Italian_Open_(tennis)",
-  Shanghai: "Shanghai_Masters_(tennis)",
-  "Paris Masters": "Rolex_Paris_Masters",
-  "Rolex Paris": "Rolex_Paris_Masters",
-  "ATP Finals": "Nitto_ATP_Finals",
-  Nitto: "Nitto_ATP_Finals",
-  "WTA Finals": "WTA_Finals",
-  Toronto: "Canadian_Open_(tennis)",
-  Montreal: "Canadian_Open_(tennis)",
-  Cincinnati: "Western_%26_Southern_Open",
-  "Western & Southern": "Western_%26_Southern_Open",
-  Barcelona: "Barcelona_Open",
-  Doha: "Qatar_TotalEnergies_Open",
-  Dubai: "Dubai_Duty_Free_Tennis_Championships",
-  Beijing: "China_Open_(tennis)",
-  "China Open": "China_Open_(tennis)",
-  Stuttgart: "Stuttgart_Open",
-};
-
-function getWikiSlug(name) {
-  if (!name) return null;
-  const n = name.toLowerCase();
-  for (const [key, slug] of Object.entries(WIKI_SLUGS)) {
-    if (n.includes(key.toLowerCase())) return slug;
-  }
-  return null;
-}
-
-// Fetch thumbnail from Wikipedia REST API using article slug
-async function fetchWikiPhoto(slug) {
-  if (!slug) return null;
-  try {
-    const res = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${slug}`,
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const url = data.thumbnail?.source;
-    if (!url) return null;
-    // Request a wider image for better stadium visibility
-    return url.replace(/\/\d+px-/, "/600px-");
-  } catch {
-    return null;
-  }
-}
-
-// ─── SURFACE CONFIG ───────────────────────────────────────────────────────────
 const SURFACE = {
   Clay: {
-    gradient: "linear-gradient(160deg,#d97706,#b45309)",
+    bg: "#c2410c",
+    accent: "#f97316",
+    lines: "rgba(255,255,255,0.35)",
     label: "CLAY",
-    icon: "🟤",
+    surfaceColor: "#d97706",
   },
   Hard: {
-    gradient: "linear-gradient(160deg,#3b82f6,#1d4ed8)",
+    bg: "#1d4ed8",
+    accent: "#3b82f6",
+    lines: "rgba(255,255,255,0.3)",
     label: "HARD",
-    icon: "🔵",
+    surfaceColor: "#2563eb",
   },
   "I.hard": {
-    gradient: "linear-gradient(160deg,#6366f1,#4338ca)",
+    bg: "#4338ca",
+    accent: "#818cf8",
+    lines: "rgba(255,255,255,0.25)",
     label: "INDOOR",
-    icon: "🟣",
+    surfaceColor: "#6366f1",
   },
   Grass: {
-    gradient: "linear-gradient(160deg,#22c55e,#15803d)",
+    bg: "#15803d",
+    accent: "#22c55e",
+    lines: "rgba(255,255,255,0.3)",
     label: "GRASS",
-    icon: "🟢",
+    surfaceColor: "#16a34a",
   },
   Carpet: {
-    gradient: "linear-gradient(160deg,#a855f7,#7e22ce)",
+    bg: "#7c3aed",
+    accent: "#a78bfa",
+    lines: "rgba(255,255,255,0.25)",
     label: "CARPET",
-    icon: "🟤",
+    surfaceColor: "#8b5cf6",
   },
 };
-function getSurface(court) {
+function S(court) {
   return (
     SURFACE[court] ?? {
-      gradient: "linear-gradient(160deg,#6b7280,#4b5563)",
+      bg: "#374151",
+      accent: "#9ca3af",
+      lines: "rgba(255,255,255,0.2)",
       label: court ?? "—",
-      icon: "⚪",
+      surfaceColor: "#6b7280",
     }
   );
 }
 
-// Alpha-2 flag emoji
-function flag(a2) {
-  if (!a2 || a2.length !== 2) return "🌍";
-  return String.fromCodePoint(
-    ...[...a2.toUpperCase()].map((c) => c.charCodeAt(0) + 127397),
-  );
+// Grand Slam indicator (star)
+const GRAND_SLAMS = [
+  "grand slam",
+  "australian open",
+  "roland garros",
+  "wimbledon",
+  "us open",
+];
+function isGrandSlam(name, round) {
+  const n = (name ?? "").toLowerCase();
+  const r = (round ?? "").toLowerCase();
+  return GRAND_SLAMS.some((gs) => n.includes(gs) || r.includes(gs));
 }
 
-// SVG court lines overlay
-function CourtLines() {
+// Full court SVG illustration - tennis court top-down view
+function CourtSVG({ surf, tournamentName, grandSlam }) {
+  const s = S(surf);
   return (
-    <svg
-      viewBox="0 0 220 150"
+    <div
       style={{
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        opacity: 0.18,
+        height: 175,
+        background: `linear-gradient(160deg, ${s.bg} 0%, ${s.accent} 100%)`,
+        position: "relative",
+        overflow: "hidden",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
       }}
     >
-      <rect
-        x="20"
-        y="15"
-        width="180"
-        height="120"
-        fill="none"
-        stroke="white"
-        strokeWidth="2"
-      />
-      <line
-        x1="110"
-        y1="15"
-        x2="110"
-        y2="135"
-        stroke="white"
-        strokeWidth="1.5"
-      />
-      <line
-        x1="20"
-        y1="75"
-        x2="200"
-        y2="75"
-        stroke="white"
-        strokeWidth="2"
-        strokeDasharray="5,4"
-      />
-      <line x1="55" y1="42" x2="165" y2="42" stroke="white" strokeWidth="1" />
-      <line x1="55" y1="108" x2="165" y2="108" stroke="white" strokeWidth="1" />
-      <line x1="55" y1="15" x2="55" y2="135" stroke="white" strokeWidth="0.6" />
-      <line
-        x1="165"
-        y1="15"
-        x2="165"
-        y2="135"
-        stroke="white"
-        strokeWidth="0.6"
-      />
-    </svg>
+      {/* Court SVG */}
+      <svg
+        viewBox="0 0 280 175"
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+        }}
+      >
+        {/* Court background */}
+        <rect
+          x="40"
+          y="20"
+          width="200"
+          height="135"
+          rx="3"
+          fill={s.surfaceColor}
+          opacity="0.6"
+        />
+        {/* Court lines */}
+        <rect
+          x="40"
+          y="20"
+          width="200"
+          height="135"
+          rx="3"
+          fill="none"
+          stroke={s.lines}
+          strokeWidth="2.5"
+        />
+        {/* Center line (net) */}
+        <line
+          x1="40"
+          y1="87"
+          x2="240"
+          y2="87"
+          stroke={s.lines}
+          strokeWidth="3"
+          strokeDasharray="0"
+        />
+        {/* Net post indicators */}
+        <circle cx="40" cy="87" r="3" fill="rgba(255,255,255,0.6)" />
+        <circle cx="240" cy="87" r="3" fill="rgba(255,255,255,0.6)" />
+        {/* Service boxes */}
+        <line
+          x1="140"
+          y1="20"
+          x2="140"
+          y2="155"
+          stroke={s.lines}
+          strokeWidth="1.5"
+        />
+        <line
+          x1="70"
+          y1="47"
+          x2="210"
+          y2="47"
+          stroke={s.lines}
+          strokeWidth="1.5"
+        />
+        <line
+          x1="70"
+          y1="128"
+          x2="210"
+          y2="128"
+          stroke={s.lines}
+          strokeWidth="1.5"
+        />
+        {/* Singles sidelines */}
+        <line
+          x1="70"
+          y1="20"
+          x2="70"
+          y2="155"
+          stroke={s.lines}
+          strokeWidth="1.5"
+        />
+        <line
+          x1="210"
+          y1="20"
+          x2="210"
+          y2="155"
+          stroke={s.lines}
+          strokeWidth="1.5"
+        />
+        {/* Baseline center marks */}
+        <line
+          x1="140"
+          y1="20"
+          x2="140"
+          y2="28"
+          stroke={s.lines}
+          strokeWidth="1.5"
+        />
+        <line
+          x1="140"
+          y1="147"
+          x2="140"
+          y2="155"
+          stroke={s.lines}
+          strokeWidth="1.5"
+        />
+      </svg>
+
+      {/* Surface badge */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 10,
+          left: 10,
+          background: "rgba(0,0,0,0.55)",
+          backdropFilter: "blur(8px)",
+          color: "#fff",
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: "0.1em",
+          padding: "4px 12px",
+          borderRadius: 20,
+          border: "1px solid rgba(255,255,255,0.2)",
+        }}
+      >
+        {s.label}
+      </div>
+
+      {/* Grand Slam star */}
+      {grandSlam && (
+        <div
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            background: "rgba(234,179,8,0.9)",
+            backdropFilter: "blur(4px)",
+            color: "#000",
+            fontSize: 10,
+            fontWeight: 900,
+            padding: "3px 10px",
+            borderRadius: 20,
+          }}
+        >
+          ★ GRAND SLAM
+        </div>
+      )}
+    </div>
   );
 }
 
-function TournamentCard({ t, onClick }) {
-  const [photo, setPhoto] = useState(null);
-  const [imgReady, setImgReady] = useState(false);
-  const [imgError, setImgError] = useState(false);
-
+function TCard({ t, onClick }) {
   const courtName = t.court?.name ?? "—";
-  const surf = getSurface(courtName);
-  const countryA2 = t.coutry?.acronym ?? "";
   const countryName = t.coutry?.name ?? "—";
+  const gs = isGrandSlam(t.name, t.round?.name);
 
-  useEffect(() => {
-    const slug = getWikiSlug(t.name);
-    if (!slug) return;
-    let cancelled = false;
-    fetchWikiPhoto(slug).then((url) => {
-      if (!cancelled && url) setPhoto(url);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [t.name]);
-
-  function formatDate(d) {
+  function fmt(d) {
     if (!d) return "—";
     try {
       return new Date(d).toLocaleDateString("en-GB", {
@@ -221,63 +273,8 @@ function TournamentCard({ t, onClick }) {
         e.currentTarget.style.transform = "none";
       }}
     >
-      {/* Visual header */}
-      <div
-        style={{
-          height: 170,
-          overflow: "hidden",
-          position: "relative",
-          background: surf.gradient,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {/* Stadium photo (loaded dynamically) */}
-        {photo && !imgError && (
-          <img
-            src={photo}
-            alt={t.name}
-            onLoad={() => setImgReady(true)}
-            onError={() => setImgError(true)}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "center",
-              opacity: imgReady ? 1 : 0,
-              transition: "opacity 0.4s ease",
-            }}
-          />
-        )}
+      <CourtSVG surf={courtName} tournamentName={t.name} grandSlam={gs} />
 
-        {/* Court lines always shown (on top of photo as overlay, or alone) */}
-        <CourtLines />
-
-        {/* Surface label */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 10,
-            left: 10,
-            background: "rgba(0,0,0,0.6)",
-            backdropFilter: "blur(6px)",
-            color: "white",
-            fontSize: 11,
-            fontWeight: 800,
-            padding: "4px 12px",
-            borderRadius: 20,
-            letterSpacing: "0.06em",
-            zIndex: 1,
-          }}
-        >
-          {surf.icon} {surf.label}
-        </div>
-      </div>
-
-      {/* Info */}
       <div style={{ padding: "14px 16px 16px", flex: 1 }}>
         <div
           style={{
@@ -290,36 +287,26 @@ function TournamentCard({ t, onClick }) {
         >
           {t.name}
         </div>
-
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 13,
-            color: "var(--text-muted)",
-            marginBottom: 4,
-          }}
+          style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}
         >
-          <span>{flag(countryA2)}</span>
-          <span>{countryName}</span>
+          📍 {countryName}
         </div>
-
         <div
           style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}
         >
-          📅 {formatDate(t.date)}
+          📅 {fmt(t.date)}
         </div>
-
         {t.round?.name && (
           <span
             style={{
-              background: "var(--primary-bg)",
-              color: "var(--primary)",
+              background: gs ? "rgba(234,179,8,0.15)" : "var(--primary-bg)",
+              color: gs ? "#b45309" : "var(--primary)",
               fontSize: 11,
               fontWeight: 600,
               padding: "2px 8px",
               borderRadius: 20,
+              border: gs ? "1px solid rgba(234,179,8,0.3)" : "none",
             }}
           >
             {t.round.name}
@@ -331,46 +318,43 @@ function TournamentCard({ t, onClick }) {
 }
 
 export default function TournamentsPage() {
-  const [atpData, setAtpData] = useState([]);
-  const [wtaData, setWtaData] = useState([]);
+  const [atp, setAtp] = useState([]);
+  const [wta, setWta] = useState([]);
   const [tab, setTab] = useState("atp");
-  const [status, setStatus] = useState("");
   const [filter, setFilter] = useState("");
-  const [yearMode, setYearMode] = useState("current");
+  const [status, setStatus] = useState("");
+  const [year, setYear] = useState("current");
   const navigate = useNavigate();
-
-  const currentYear = new Date().getFullYear();
-  const year = yearMode === "prev" ? currentYear - 1 : currentYear;
+  const cy = new Date().getFullYear();
+  const yr = year === "prev" ? cy - 1 : cy;
 
   useEffect(() => {
-    loadBoth();
-  }, [year]);
+    load();
+  }, [yr]);
 
-  async function loadBoth() {
-    setStatus("Loading tournaments...");
-    const [atp, wta] = await Promise.allSettled([
-      fetch(`${API_URL}/api/atp/tournaments?tour=atp&year=${year}`).then((r) =>
+  async function load() {
+    setStatus("Loading...");
+    const [a, w] = await Promise.allSettled([
+      fetch(`${API_URL}/api/atp/tournaments?tour=atp&year=${yr}`).then((r) =>
         r.json(),
       ),
-      fetch(`${API_URL}/api/atp/tournaments?tour=wta&year=${year}`).then((r) =>
+      fetch(`${API_URL}/api/atp/tournaments?tour=wta&year=${yr}`).then((r) =>
         r.json(),
       ),
     ]);
-    if (atp.status === "fulfilled") setAtpData(atp.value.data ?? []);
-    if (wta.status === "fulfilled") setWtaData(wta.value.data ?? []);
+    if (a.status === "fulfilled") setAtp(a.value.data ?? []);
+    if (w.status === "fulfilled") setWta(w.value.data ?? []);
     setStatus("");
   }
 
-  const rawList = tab === "atp" ? atpData : wtaData;
-  const sorted = [...rawList].sort(
-    (a, b) => new Date(a.date) - new Date(b.date),
-  );
-  const filtered = sorted.filter(
-    (t) =>
-      !filter ||
-      t.name?.toLowerCase().includes(filter.toLowerCase()) ||
-      t.coutry?.name?.toLowerCase().includes(filter.toLowerCase()),
-  );
+  const list = [...(tab === "atp" ? atp : wta)]
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .filter(
+      (t) =>
+        !filter ||
+        t.name?.toLowerCase().includes(filter.toLowerCase()) ||
+        t.coutry?.name?.toLowerCase().includes(filter.toLowerCase()),
+    );
 
   return (
     <div className="page">
@@ -386,25 +370,25 @@ export default function TournamentsPage() {
         <h2 style={{ marginBottom: 0 }}>Tournament Calendar</h2>
         <div style={{ display: "flex", gap: 6 }}>
           <button
-            className={yearMode === "current" ? "btn-primary" : ""}
+            className={year === "current" ? "btn-primary" : ""}
             style={{ padding: "5px 12px", fontSize: 13 }}
-            onClick={() => setYearMode("current")}
+            onClick={() => setYear("current")}
           >
-            {currentYear}
+            {cy}
           </button>
           <button
-            className={yearMode === "prev" ? "btn-primary" : ""}
+            className={year === "prev" ? "btn-primary" : ""}
             style={{ padding: "5px 12px", fontSize: 13 }}
-            onClick={() => setYearMode("prev")}
+            onClick={() => setYear("prev")}
           >
-            {currentYear - 1}
+            {cy - 1}
           </button>
         </div>
       </div>
 
       <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>
-        ⚠️ Free API plan shows up to ~11 tournaments. Full calendar available
-        via static data when quota is exceeded.
+        ⚠️ Free API plan shows ~11 tournaments per request. Full {cy} calendar
+        shown via static data.
       </p>
 
       <div
@@ -439,16 +423,12 @@ export default function TournamentsPage() {
       </div>
 
       {status && <p style={{ color: "var(--text-muted)" }}>{status}</p>}
-
-      {!status && filtered.length === 0 && (
+      {!status && list.length === 0 && (
         <div className="card" style={{ padding: 32, textAlign: "center" }}>
           <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>
-            No tournament data for {year}.<br />
-            <span style={{ fontSize: 13 }}>
-              Try switching to {currentYear - 1}.
-            </span>
+            No data for {yr}. Try {cy - 1}.
           </p>
-          <button className="btn-primary" onClick={loadBoth}>
+          <button className="btn-primary" onClick={load}>
             Retry
           </button>
         </div>
@@ -457,12 +437,12 @@ export default function TournamentsPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fill, minmax(270px,1fr))",
           gap: 20,
         }}
       >
-        {filtered.map((t, i) => (
-          <TournamentCard
+        {list.map((t, i) => (
+          <TCard
             key={t.id ?? i}
             t={t}
             onClick={() => t.id && navigate(`/tournaments/${t.id}?tour=${tab}`)}

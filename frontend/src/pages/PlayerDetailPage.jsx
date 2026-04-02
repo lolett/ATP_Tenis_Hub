@@ -1,21 +1,8 @@
-// pages/PlayerDetailPage.jsx — supports ?tour=wta query param
+// pages/PlayerDetailPage.jsx
+// Supports ATP players (real IDs) and WTA static players (wta-200001 format)
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { API_URL } from "../api/client";
-
-async function fetchWikiPhoto(playerName) {
-  try {
-    const slug = playerName.trim().replace(/\s+/g, "_");
-    const res = await fetch(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`,
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.thumbnail?.source ?? null;
-  } catch {
-    return null;
-  }
-}
 
 export default function PlayerDetailPage() {
   const { id } = useParams();
@@ -29,8 +16,12 @@ export default function PlayerDetailPage() {
   const [photo, setPhoto] = useState(null);
   const [status, setStatus] = useState("");
 
+  // Detect WTA static players: URL id starts with "wta-"
+  const isWtaStatic = id.startsWith("wta-");
+  const realId = isWtaStatic ? id.replace("wta-", "") : id;
+
   useEffect(() => {
-    if (id) loadAll();
+    loadAll();
   }, [id, tour]);
 
   async function loadAll() {
@@ -39,36 +30,50 @@ export default function PlayerDetailPage() {
     setPhoto(null);
     setSurface([]);
     setTitles([]);
-
     try {
-      const profileRes = await fetch(
-        `${API_URL}/api/atp/players/${id}?tour=${tour}`,
-      );
+      let profileUrl;
+      if (isWtaStatic) {
+        // WTA static profile
+        profileUrl = `${API_URL}/api/atp/players/wta/${realId}`;
+      } else {
+        profileUrl = `${API_URL}/api/atp/players/${realId}?tour=${tour}`;
+      }
+
+      const profileRes = await fetch(profileUrl);
       if (!profileRes.ok) throw new Error(`HTTP ${profileRes.status}`);
       const profileJson = await profileRes.json();
       const p = profileJson.data ?? profileJson;
       setPlayer(p);
       setStatus("");
-      if (p.name) fetchWikiPhoto(p.name).then(setPhoto);
 
-      const [surfaceRes, titlesRes] = await Promise.allSettled([
-        fetch(`${API_URL}/api/atp/players/${id}/surface?tour=${tour}`).then(
-          (r) => r.json(),
-        ),
-        fetch(`${API_URL}/api/atp/players/${id}/titles?tour=${tour}`).then(
-          (r) => r.json(),
-        ),
-      ]);
-      if (surfaceRes.status === "fulfilled") {
-        const rows = surfaceRes.value.data ?? [];
-        if (rows.length > 0) setSurface(rows[0].surfaces ?? []);
+      // Photo via backend proxy
+      if (p.name) {
+        setPhoto(
+          `${API_URL}/api/wiki/photo?name=${encodeURIComponent(p.name)}&type=square`,
+        );
       }
-      if (titlesRes.status === "fulfilled") {
-        setTitles(titlesRes.value.data ?? []);
+
+      // Surface and titles (only for ATP real players — WTA static doesn't have these)
+      if (!isWtaStatic) {
+        const [surfaceRes, titlesRes] = await Promise.allSettled([
+          fetch(
+            `${API_URL}/api/atp/players/${realId}/surface?tour=${tour}`,
+          ).then((r) => r.json()),
+          fetch(
+            `${API_URL}/api/atp/players/${realId}/titles?tour=${tour}`,
+          ).then((r) => r.json()),
+        ]);
+        if (surfaceRes.status === "fulfilled") {
+          const rows = surfaceRes.value.data ?? [];
+          if (rows.length > 0) setSurface(rows[0].surfaces ?? []);
+        }
+        if (titlesRes.status === "fulfilled") {
+          setTitles(titlesRes.value.data ?? []);
+        }
       }
     } catch (err) {
       console.error(err);
-      setStatus(`Error: ${err.message}`);
+      setStatus(`Error loading player: ${err.message}`);
     }
   }
 
@@ -92,7 +97,7 @@ export default function PlayerDetailPage() {
       </button>
 
       {/* Header card */}
-      <div className="card" style={{ padding: 28, marginBottom: 24 }}>
+      <div className="card" style={{ padding: 28, marginBottom: 20 }}>
         <div
           style={{
             display: "flex",
@@ -120,7 +125,12 @@ export default function PlayerDetailPage() {
               <img
                 src={photo}
                 alt={player.name}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "top center",
+                }}
               />
             ) : (
               <span style={{ fontSize: 44 }}>🎾</span>
@@ -160,7 +170,6 @@ export default function PlayerDetailPage() {
             >
               {player.country?.name ?? player.countryAcr} · {info.plays || "—"}
             </p>
-
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               {[
                 { label: "Rank", value: player.curRank?.position ?? "—" },
@@ -171,7 +180,7 @@ export default function PlayerDetailPage() {
                     ? Number(player.points).toLocaleString()
                     : "—",
                 },
-                { label: "Status", value: player.playerStatus ?? "—" },
+                { label: "Status", value: player.playerStatus ?? "Active" },
               ].map(({ label, value }) => (
                 <div key={label} className="stat-box">
                   <div className="stat-label">{label}</div>
@@ -197,7 +206,7 @@ export default function PlayerDetailPage() {
       )}
 
       {/* Bio */}
-      {(info.coach || info.birthplace) && (
+      {(info.coach || info.birthplace || info.height) && (
         <Section title="Biography">
           <div
             style={{
@@ -310,7 +319,6 @@ function Section({ title, children }) {
     </div>
   );
 }
-
 function InfoRow({ label, value }) {
   if (!value) return null;
   return (
