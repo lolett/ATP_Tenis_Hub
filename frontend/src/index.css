@@ -363,29 +363,274 @@ tbody tr:hover {
   color: var(--text);
 }
 
+/* ─── DASHBOARD ─────────────────────────────────────────────────────────── */
+.dashboard-card {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.dashboard-form-row {
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.dashboard-form-row-1 {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+}
+
+.dashboard-form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.dashboard-form-row-3 {
+  display: flex;
+  gap: 10px;
+}
+
+.dashboard-notes-input {
+  flex: 1;
+}
+
+.dashboard-submit-btn {
+  white-space: nowrap;
+}
+
+.dashboard-filters {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.dashboard-filter-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.activity-list {
+  list-style: none;
+  padding: 0;
+}
+
+.activity-item {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) auto auto auto auto;
+  grid-template-areas:
+    "title badge date meta score"
+    "notes notes notes actions actions";
+  gap: 10px 12px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.activity-title {
+  grid-area: title;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.activity-date {
+  grid-area: date;
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.activity-meta {
+  grid-area: meta;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.activity-score {
+  grid-area: score;
+  font-size: 12px;
+  font-family: monospace;
+  font-weight: 600;
+  justify-self: end;
+}
+
+.activity-notes {
+  grid-area: notes;
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.activity-item .badge,
+.activity-item .badge-match,
+.activity-item .badge-training,
+.activity-item .badge-workout {
+  grid-area: badge;
+  justify-self: start;
+}
+
+.activity-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 /* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .dashboard-form-row-1 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-form-row-1 > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .activity-item {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "title badge"
+      "date date"
+      "meta score"
+      "notes notes"
+      "actions actions";
+    align-items: start;
+  }
+
+  .activity-notes {
+    grid-column: 1 / -1;
+  }
+
+  .activity-actions {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 768px) {
   .page {
-    padding: 16px 14px;
+    padding: 8px 6px;
+    max-width: 100%;
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
   }
-  .form-grid {
+
+  .dashboard-card {
+    padding: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .dashboard-form-row-1,
+  .dashboard-form-row-2,
+  .dashboard-filters {
     grid-template-columns: 1fr;
   }
+
+  .dashboard-form-row-1 > :first-child {
+    grid-column: auto;
+  }
+
+  .dashboard-form-row-3 {
+    flex-direction: column;
+  }
+
+  .dashboard-submit-btn {
+    width: 100%;
+  }
+
   td,
   th {
     padding: 10px 12px;
   }
+
   .hide-mobile {
-    display: none;
+    display: none !important;
+  }
+
+  .activity-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "title title"
+      "badge date"
+      "meta score"
+      "notes notes"
+      "actions actions";
+    gap: 8px 10px;
+    align-items: start;
+  }
+
+  .activity-date,
+  .activity-meta,
+  .activity-score {
+    white-space: normal;
+  }
+
+  .activity-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .activity-item .badge,
+  .activity-date,
+  .activity-meta,
+  .activity-score {
+    align-self: center;
+  }
+
+  .activity-title {
+    margin-bottom: 2px;
   }
 }
+
 @media (max-width: 480px) {
   h2 {
     font-size: 18px;
   }
+
   button {
     padding: 7px 12px;
     font-size: 13px;
+  }
+
+  .tabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
+.nav-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .nav-desktop {
+    display: none !important;
+  }
+
+  .nav-mobile {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page {
+    padding: 8px 6px;
+  }
+
+  .dashboard-card {
+    padding: 12px;
   }
 }
 

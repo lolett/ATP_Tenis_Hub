@@ -149,20 +149,13 @@ export default function DashboardPage() {
       )}
 
       {/* Form card */}
-      <div className="card" style={{ padding: 24, marginBottom: 20 }}>
+      <div className="card dashboard-card">
         <h2 style={{ marginBottom: 20 }}>
           {editingId ? "✏️ Edit activity" : "➕ New activity"}
         </h2>
         <form onSubmit={handleSubmit}>
           {/* Row 1: title, type, date */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "2fr 1fr 1fr",
-              gap: 10,
-              marginBottom: 10,
-            }}
-          >
+          <div className="dashboard-form-row dashboard-form-row-1">
             <div>
               <input
                 value={title}
@@ -190,14 +183,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Row 2: surface, score */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 10,
-              marginBottom: 10,
-            }}
-          >
+          <div className="dashboard-form-row dashboard-form-row-2">
             <input
               value={surface}
               onChange={(e) => setSurface(e.target.value)}
@@ -211,7 +197,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Row 3: notes + submit */}
-          <div style={{ display: "flex", gap: 10 }}>
+          <div className="dashboard-form-row dashboard-form-row-3">
             <input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -249,18 +235,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Activities list card */}
-      <div className="card" style={{ padding: 24 }}>
+      <div className="card dashboard-card">
         <h2 style={{ marginBottom: 16 }}>My activities</h2>
 
         {/* Filters */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "2fr 1fr 1fr 1fr",
-            gap: 10,
-            marginBottom: 16,
-          }}
-        >
+        <div className="dashboard-filters">
           <input
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
@@ -292,14 +271,7 @@ export default function DashboardPage() {
         </div>
 
         {hasActiveFilter && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 12,
-            }}
-          >
+          <div className="dashboard-filter-summary">
             <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
               Showing {filtered.length} of {activities.length} activities
             </span>
@@ -351,57 +323,18 @@ export default function DashboardPage() {
           </p>
         )}
 
-        <ul style={{ listStyle: "none", padding: 0 }}>
+        <ul className="activity-list">
           {filtered.map((a) => (
-            <li
-              key={a.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                flexWrap: "wrap",
-                padding: "12px 0",
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <strong style={{ minWidth: 100, flex: 1 }}>{a.title}</strong>
+            <li key={a.id} className="activity-item">
+              <strong className="activity-title">{a.title}</strong>
               <span className={(TYPE_CONFIG[a.type] ?? {}).badge ?? "badge"}>
                 {(TYPE_CONFIG[a.type] ?? {}).label ?? a.type}
               </span>
-              <span
-                style={{
-                  fontSize: 13,
-                  color: "var(--text-muted)",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {a.date}
-              </span>
-              {a.surface && (
-                <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                  · {a.surface}
-                </span>
-              )}
-              {a.score && (
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontFamily: "monospace",
-                    fontWeight: 600,
-                  }}
-                >
-                  {a.score}
-                </span>
-              )}
-              {a.notes && (
-                <span
-                  className="hide-mobile"
-                  style={{ fontSize: 12, color: "var(--text-muted)", flex: 1 }}
-                >
-                  · {a.notes}
-                </span>
-              )}
-              <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+              <span className="activity-date">{a.date}</span>
+              {a.surface && <span className="activity-meta"> {a.surface}</span>}
+              {a.score && <span className="activity-score">{a.score}</span>}
+              {a.notes && <span className="activity-notes">{a.notes}</span>}
+              <div className="activity-actions">
                 <button
                   onClick={() => startEdit(a)}
                   style={{ padding: "5px 10px", fontSize: 12 }}
