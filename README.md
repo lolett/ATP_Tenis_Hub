@@ -2,30 +2,36 @@
 
 ATP Tenis Hub is a web application developed for the DAW intermodular project (PIDAW).
 
-The project is focused on two main ideas:
+The project is focused on two main functional areas:
 
-- managing personal tennis activities (matches/training) through a full CRUD system
-- building a technical foundation that can later be extended with real ATP data such as rankings, tournaments and results
+- managing personal tennis activities through an authenticated full CRUD system
+- consulting professional tennis information through an ATP/WTA module integrated into the same web application
+
+The final version includes user authentication with JWT, protected routes, activity management per user, ATP/WTA rankings, player profiles, tournaments and results, as well as cache/fallback mechanisms in the backend to reduce dependence on the external API.
 
 ## Repository
 
 ```text
-https://github.com/lolett/atp-tenis-hub
+https://github.com/lolett/ATP_Tenis_Hub
 ```
 
-## Current MVP status
+## Current project status
 
-The current version includes:
+The current final version includes:
 
 - React + Vite frontend
 - Node.js + Express backend
 - SQLite database
-- Full CRUD for activities:
-  - list activities
-  - create activity
-  - edit activity
-  - delete activity
-- API tested with Postman
+- User authentication with JWT
+- Protected routes
+- Full CRUD for personal activities per authenticated user
+- Activity filtering by title, type and date range
+- ATP and WTA rankings
+- Player profiles, titles and surface statistics
+- Tournament calendar, tournament detail and results
+- Player photos served through the backend
+- Cache/fallback support for external tennis data
+- API testing with Postman
 - Git/GitHub version control
 
 ## Tech stack
@@ -98,11 +104,11 @@ Each activity includes:
 - Create, read, update, delete activities
 - Types: match, training, workout
 - Fields: title, date, surface, score, notes
-- Filter by title, sort by date
+- Filter by title, type and date range, sorted by date
 
-### ATP Module
+### ATP/WTA Module
 
-- Live ATP singles ranking (top players with real points)
+- Live ATP and WTA singles ranking (top players with real points)
 - Player profiles: biography, current/best rank, playing hand, coach
 - Recent form indicators (W/L)
 - Surface performance stats (win %, wins, losses per surface)
@@ -129,14 +135,18 @@ Each activity includes:
 | PUT    | /api/activities/:id | Yes  | Update activity      |
 | DELETE | /api/activities/:id | Yes  | Delete activity      |
 
-### ATP
+### ATP / WTA / Tennis data
 
-| Method | Endpoint                     | Auth | Description         |
-| ------ | ---------------------------- | ---- | ------------------- |
-| GET    | /api/atp/ranking             | No   | ATP singles ranking |
-| GET    | /api/atp/players/:id         | No   | Player profile      |
-| GET    | /api/atp/players/:id/surface | No   | Surface stats       |
-| GET    | /api/atp/players/:id/titles  | No   | Career titles       |
+| Method | Endpoint                         | Auth | Description                  |
+| ------ | -------------------------------- | ---- | ---------------------------- |
+| GET    | /api/atp/ranking                 | No   | ATP/WTA ranking              |
+| GET    | /api/atp/players/:id             | No   | Player profile               |
+| GET    | /api/atp/players/:id/surface     | No   | Surface stats                |
+| GET    | /api/atp/players/:id/titles      | No   | Career titles                |
+| GET    | /api/atp/tournaments             | No   | Tournament calendar          |
+| GET    | /api/atp/tournaments/:id/info    | No   | Tournament detail            |
+| GET    | /api/atp/tournaments/:id/results | No   | Tournament results           |
+| GET    | /api/wiki/photo                  | No   | Player photo through backend |
 
 ## Local setup
 
@@ -255,22 +265,24 @@ The backend currently includes:
 
 The API has been tested with Postman using requests for:
 
-- create
-- list
-- get by id
-- update
-- delete
+- register and login
+- authenticated activity CRUD
+- ranking queries
+- player profile queries
+- tournament queries
 
 ## Future improvements
 
-Planned future work includes:
+Possible future work includes:
 
-- ATP ranking integration
-- tournament calendar
-- results and player information
-- better UI/UX
-- authentication and user accounts
-- migration to PostgreSQL if needed
+- favorites and saved players/tournaments
+- personal statistics and charts
+- export of activities
+- email verification and password recovery
+- automated testing
+- CI/CD workflow
+- migration from SQLite to PostgreSQL if the project grows
+- broader tennis data coverage with a higher external API plan
 
 ## Author
 
